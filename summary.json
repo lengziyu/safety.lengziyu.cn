@@ -1,0 +1,20 @@
+{
+  "pdf": "题库及参考答案.pdf",
+  "totalRawQuestions": 2965,
+  "totalParsed": 2965,
+  "totalErrors": 0,
+  "counts": {
+    "single": 1852,
+    "multiple": 616,
+    "judge": 497,
+    "case": 0
+  },
+  "validationRules": {
+    "single": "answer.length == 1",
+    "multiple": "answer.length >= 2",
+    "judge": "answer in [['A'], ['B']]",
+    "optionsKeys": "连续且大写",
+    "answerInOptions": true,
+    "questionNotEmpty": true
+  }
+}

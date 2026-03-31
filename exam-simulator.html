@@ -1,0 +1,702 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>模拟考试（本地存档）</title>
+  <style>
+    :root {
+      --bg1: #f4f7fb;
+      --bg2: #eef8f3;
+      --card: #ffffff;
+      --line: #dce5ef;
+      --text: #1f2937;
+      --muted: #64748b;
+      --primary: #0f766e;
+      --primary-soft: #dbf3ef;
+      --warn: #b45309;
+      --ok: #166534;
+      --bad: #b91c1c;
+      --shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background: radial-gradient(circle at 15% 0%, #fff7ed 0%, transparent 35%), linear-gradient(145deg, var(--bg1), var(--bg2));
+    }
+
+    .wrap {
+      width: min(1080px, calc(100% - 20px));
+      margin: 14px auto 24px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .sticky {
+      position: sticky;
+      top: 8px;
+      z-index: 20;
+      backdrop-filter: blur(4px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.2px;
+    }
+
+    .tips {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status {
+      margin-top: 8px;
+      color: var(--warn);
+      font-size: 13px;
+      font-weight: 700;
+      min-height: 18px;
+    }
+
+    .grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      font-size: 14px;
+      width: 100%;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .18s ease, background-color .18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #c3e9e2; }
+    .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
+    .btn-danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+
+    .meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .score {
+      margin-top: 8px;
+      color: var(--warn);
+      font-weight: 800;
+      min-height: 18px;
+    }
+
+    .warn {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #92400e;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .list {
+      margin-top: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 13px;
+      box-shadow: var(--shadow);
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 8px;
+    }
+
+    .tag {
+      padding: 2px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      border: 1px solid #d6e4f5;
+      background: #eef5ff;
+      color: #1e3a8a;
+    }
+
+    .q {
+      margin: 0 0 9px;
+      line-height: 1.58;
+      font-size: 15px;
+      word-break: break-word;
+    }
+
+    .opts {
+      display: grid;
+      gap: 8px;
+    }
+
+    .opt {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      align-items: center;
+      column-gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 9px 10px;
+    }
+
+    .opt input {
+      justify-self: center;
+      margin-top: 0;
+      accent-color: var(--primary);
+      transform: scale(1.08);
+    }
+
+    .opt > span { line-height: 1.5; }
+
+    .opt.correct { background: #edfdf3; border-color: #b7e4c6; }
+    .opt.wrong { background: #fff1f2; border-color: #fecdd3; }
+
+    .feedback {
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      min-height: 18px;
+    }
+
+    .feedback.ok { color: var(--ok); }
+    .feedback.bad { color: var(--bad); }
+
+    .answer,
+    .analysis {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .show-answer .answer,
+    .show-answer .analysis { display: block; }
+
+    .empty {
+      border: 1px dashed #bdd2ea;
+      background: #f8fbff;
+      border-radius: 12px;
+      padding: 16px;
+      color: #34506b;
+      text-align: center;
+    }
+
+    @media (min-width: 760px) {
+      h1 { font-size: 24px; }
+      .grid { grid-template-columns: 1fr 1fr; }
+      .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .wrap { margin-top: 20px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="panel sticky">
+      <h1>模拟考试</h1>
+      <p class="tips">组卷规则：50单选 + 10多选 + 15判断 + 15案例。多选每题2分，其它每题1分，60分及格。</p>
+      <div id="status" class="status"></div>
+
+      <div class="grid">
+        <button id="newExamBtn" class="btn-primary" type="button">开始/重考（重新抽题）</button>
+      </div>
+
+      <div class="actions">
+        <button id="submitBtn" class="btn-primary" type="button">交卷评分</button>
+        <button id="toggleAnswerBtn" class="btn-secondary" type="button">显示标准答案</button>
+        <button id="resetCurrentBtn" class="btn-plain" type="button">重做本卷（不换题）</button>
+        <button id="clearStorageBtn" class="btn-danger" type="button">清空本地记录</button>
+      </div>
+
+      <div id="meta" class="meta"></div>
+      <div id="score" class="score"></div>
+      <div id="warn" class="warn"></div>
+    </section>
+
+    <section id="list" class="list"></section>
+  </main>
+  <script>
+    const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
+    const PASS_SCORE = 60;
+    const STORAGE_KEY = 'exam_sim_state_v1';
+
+    const labelMap = { single: '单选', multiple: '多选', judge: '判断', case: '案例' };
+
+    const app = {
+      bank: [],
+      byId: new Map(),
+      exam: null,
+      showAnswer: false,
+      warnings: []
+    };
+
+    const el = {
+      status: document.getElementById('status'),
+      meta: document.getElementById('meta'),
+      score: document.getElementById('score'),
+      warn: document.getElementById('warn'),
+      list: document.getElementById('list'),
+      newExamBtn: document.getElementById('newExamBtn'),
+      submitBtn: document.getElementById('submitBtn'),
+      toggleAnswerBtn: document.getElementById('toggleAnswerBtn'),
+      resetCurrentBtn: document.getElementById('resetCurrentBtn'),
+      clearStorageBtn: document.getElementById('clearStorageBtn')
+    };
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function uniqueSortedAnswers(arr) {
+      if (!Array.isArray(arr)) return [];
+      return [...new Set(arr.map(x => String(x).trim().toUpperCase()).filter(Boolean))].sort();
+    }
+
+    function normalizeQuestion(q, i) {
+      const type = ['single', 'multiple', 'judge', 'case'].includes(q.type) ? q.type : 'single';
+      const options = Array.isArray(q.options) ? q.options : [];
+      return {
+        id: String(q.id || `${type}-${String(i + 1).padStart(4, '0')}`),
+        no: String(q.no || i + 1),
+        type,
+        question: String(q.question || '').trim(),
+        options: options.map(o => ({ key: String(o.key || '').trim().toUpperCase(), text: String(o.text || '').trim() })),
+        answer: uniqueSortedAnswers(q.answer),
+        analysis: String(q.analysis || '').trim(),
+        sourcePage: q.sourcePage || ''
+      };
+    }
+
+    function pointsBySlotType(slotType) {
+      return slotType === 'multiple' ? 2 : 1;
+    }
+
+    function isExactlyCorrect(selected, standard) {
+      if (selected.length !== standard.length) return false;
+      for (let i = 0; i < selected.length; i += 1) {
+        if (selected[i] !== standard[i]) return false;
+      }
+      return true;
+    }
+
+    function saveState() {
+      if (!app.exam) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        exam: app.exam,
+        showAnswer: app.showAnswer,
+        warnings: app.warnings
+      }));
+    }
+
+    function clearState() {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    function idsByType(type) {
+      return app.bank.filter(q => q.type === type).map(q => q.id);
+    }
+
+    function idsMultiCapable() {
+      return app.bank.filter(q => q.type === 'multiple' || q.answer.length >= 2).map(q => q.id);
+    }
+
+    function idsSingleCapable() {
+      return app.bank.filter(q => q.type !== 'multiple' && q.answer.length <= 1).map(q => q.id);
+    }
+
+    function pickFromPool(pool, used, n) {
+      const picked = [];
+      for (const id of pool) {
+        if (picked.length >= n) break;
+        if (used.has(id)) continue;
+        used.add(id);
+        picked.push(id);
+      }
+      return picked;
+    }
+
+    function buildExam() {
+      const used = new Set();
+      const items = [];
+      const warnings = [];
+
+      const pool = {
+        single: shuffle(idsByType('single')),
+        multiple: shuffle(idsByType('multiple')),
+        judge: shuffle(idsByType('judge')),
+        case: shuffle(idsByType('case')),
+        multiCapable: shuffle(idsMultiCapable()),
+        singleCapable: shuffle(idsSingleCapable())
+      };
+
+      function pickSlot(slotType, count) {
+        let picked = [];
+
+        if (slotType === 'multiple') {
+          picked = pickFromPool(pool.multiple, used, count);
+          if (picked.length < count) {
+            const extra = pickFromPool(pool.multiCapable, used, count - picked.length);
+            picked = picked.concat(extra);
+          }
+        } else if (slotType === 'single') {
+          picked = pickFromPool(pool.single, used, count);
+          if (picked.length < count) {
+            const extra = pickFromPool(pool.singleCapable, used, count - picked.length);
+            picked = picked.concat(extra);
+          }
+        } else if (slotType === 'judge') {
+          picked = pickFromPool(pool.judge, used, count);
+          if (picked.length < count) {
+            const extra = pickFromPool(pool.singleCapable, used, count - picked.length);
+            picked = picked.concat(extra);
+          }
+        } else if (slotType === 'case') {
+          picked = pickFromPool(pool.case, used, count);
+          if (picked.length < count) {
+            const extra = pickFromPool(pool.singleCapable, used, count - picked.length);
+            picked = picked.concat(extra);
+          }
+        }
+
+        if (picked.length < count) {
+          warnings.push(`${labelMap[slotType]}题不足 ${count}，当前仅组出 ${picked.length} 题。`);
+        }
+
+        picked.forEach(id => {
+          const q = app.byId.get(id);
+          items.push({
+            slotType,
+            sourceType: q ? q.type : slotType,
+            qid: id
+          });
+        });
+      }
+
+      pickSlot('single', REQUIRED.single);
+      pickSlot('multiple', REQUIRED.multiple);
+      pickSlot('judge', REQUIRED.judge);
+      pickSlot('case', REQUIRED.case);
+
+      return {
+        exam: {
+          examId: `exam-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          submitted: false,
+          selections: {},
+          scoreDetail: null,
+          items
+        },
+        warnings
+      };
+    }
+
+    function calcScore() {
+      if (!app.exam) return null;
+      let score = 0;
+      let answered = 0;
+      let maxScore = 0;
+      const detail = { single: 0, multiple: 0, judge: 0, case: 0 };
+
+      for (const item of app.exam.items) {
+        const q = app.byId.get(item.qid);
+        if (!q) continue;
+        const pts = pointsBySlotType(item.slotType);
+        maxScore += pts;
+
+        const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+        if (selected.length > 0) answered += 1;
+
+        if (isExactlyCorrect(selected, q.answer)) {
+          score += pts;
+          detail[item.slotType] += pts;
+        }
+      }
+
+      return {
+        score,
+        maxScore,
+        answered,
+        pass: score >= PASS_SCORE,
+        detail
+      };
+    }
+
+    function updateMeta() {
+      if (!app.exam) {
+        el.meta.textContent = '未开始考试。';
+        el.score.textContent = '';
+        return;
+      }
+
+      const cnt = { single: 0, multiple: 0, judge: 0, case: 0 };
+      app.exam.items.forEach(i => { cnt[i.slotType] += 1; });
+      el.meta.textContent = `试卷ID：${app.exam.examId} ｜ 题量：${app.exam.items.length} ｜ 配比：单选${cnt.single} / 多选${cnt.multiple} / 判断${cnt.judge} / 案例${cnt.case} ｜ 及格线：${PASS_SCORE}分`;
+
+      if (app.exam.submitted && app.exam.scoreDetail) {
+        const s = app.exam.scoreDetail;
+        el.score.textContent = `成绩：${s.score} / ${s.maxScore} ｜ 已作答 ${s.answered} 题 ｜ ${s.pass ? '通过' : '未通过'}（及格 ${PASS_SCORE}）`;
+        el.score.style.color = s.pass ? 'var(--ok)' : 'var(--bad)';
+      } else {
+        el.score.textContent = '未交卷。答题过程已自动保存在本地。';
+        el.score.style.color = 'var(--warn)';
+      }
+
+      if (app.warnings.length) {
+        el.warn.style.display = 'block';
+        el.warn.textContent = `组卷提示：${app.warnings.join('；')}`;
+      } else {
+        el.warn.style.display = 'none';
+        el.warn.textContent = '';
+      }
+    }
+
+    function renderList() {
+      if (!app.exam || !app.exam.items.length) {
+        el.list.innerHTML = '<div class="empty">暂无试卷。请先点击“开始/重考（重新抽题）”。</div>';
+        return;
+      }
+
+      el.list.innerHTML = app.exam.items.map((item, idx) => {
+        const q = app.byId.get(item.qid);
+        if (!q) return '';
+
+        const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+        const isCorrect = isExactlyCorrect(selected, q.answer);
+        const show = app.showAnswer || app.exam.submitted;
+
+        // 多选按 slotType 判断；其它题型默认单选。若标准答案本身是多项，使用多选控件。
+        const multiInput = item.slotType === 'multiple' || q.answer.length > 1;
+        const inputType = multiInput ? 'checkbox' : 'radio';
+
+        const optionsHtml = q.options.map(opt => {
+          const checked = selected.includes(opt.key) ? 'checked' : '';
+          let cls = 'opt';
+          if (show) {
+            if (q.answer.includes(opt.key)) cls += ' correct';
+            if (selected.includes(opt.key) && !q.answer.includes(opt.key)) cls += ' wrong';
+          }
+          return `
+            <label class="${cls}">
+              <input type="${inputType}" name="q-${q.id}" value="${opt.key}" ${checked} ${app.exam.submitted ? 'disabled' : ''} />
+              <span><strong>${opt.key}.</strong> ${opt.text}</span>
+            </label>`;
+        }).join('');
+
+        const feedback = app.exam.submitted
+          ? `<div class="feedback ${isCorrect ? 'ok' : 'bad'}">${isCorrect ? '回答正确' : '回答错误'}（本题 ${pointsBySlotType(item.slotType)} 分）</div>`
+          : '<div class="feedback"></div>';
+
+        const sourceTag = item.sourceType !== item.slotType ? `（补位:${labelMap[item.sourceType] || item.sourceType}）` : '';
+
+        return `
+          <article class="card ${show ? 'show-answer' : ''}" id="card-${q.id}">
+            <div class="meta-row">
+              <span class="tag">#${idx + 1}</span>
+              <span class="tag">考试题型：${labelMap[item.slotType]}${sourceTag}</span>
+              <span class="tag">原题型：${labelMap[q.type] || q.type}</span>
+              <span class="tag">题号 ${q.no}</span>
+              <span class="tag">分值 ${pointsBySlotType(item.slotType)}</span>
+            </div>
+            <p class="q">${q.question || '（题干为空）'}</p>
+            <div class="opts">${optionsHtml}</div>
+            ${feedback}
+            <div class="answer">标准答案：${q.answer.join('、') || '无'}</div>
+            <div class="analysis">解析：${q.analysis || '无'}</div>
+          </article>`;
+      }).join('');
+
+      bindQuestionEvents();
+    }
+
+    function bindQuestionEvents() {
+      if (!app.exam || app.exam.submitted) return;
+      const inputs = el.list.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+      inputs.forEach(input => {
+        input.addEventListener('change', () => {
+          const qid = input.name.replace('q-', '');
+          const checked = Array.from(document.querySelectorAll(`input[name="q-${qid}"]:checked`)).map(i => i.value).sort();
+          app.exam.selections[qid] = checked;
+          saveState();
+        });
+      });
+    }
+
+    function renderAll() {
+      updateMeta();
+      renderList();
+      el.toggleAnswerBtn.textContent = app.showAnswer ? '隐藏标准答案' : '显示标准答案';
+    }
+
+    function startNewExam() {
+      if (!app.bank.length) {
+        el.status.textContent = '题库未加载，请稍后再试。';
+        return;
+      }
+      const built = buildExam();
+      app.exam = built.exam;
+      app.warnings = built.warnings;
+      app.showAnswer = false;
+
+      // 当前题库没有案例时，提示补位数量。
+      const cntCase = app.exam.items.filter(i => i.slotType === 'case' && i.sourceType !== 'case').length;
+      if (cntCase > 0) {
+        app.warnings.push(`案例题库不足，已有 ${cntCase} 题使用其它题型补位。`);
+      }
+
+      saveState();
+      el.status.textContent = `已生成新试卷：${app.exam.examId}`;
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function submitExam() {
+      if (!app.exam) return;
+      const detail = calcScore();
+      app.exam.submitted = true;
+      app.exam.scoreDetail = detail;
+      saveState();
+      el.status.textContent = detail.pass ? '交卷完成：恭喜通过。' : '交卷完成：未通过，可重做或重考。';
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetCurrentExam() {
+      if (!app.exam) return;
+      app.exam.submitted = false;
+      app.exam.scoreDetail = null;
+      app.exam.selections = {};
+      app.showAnswer = false;
+      saveState();
+      el.status.textContent = '已重做本卷（题目不变，答案已清空）。';
+      renderAll();
+    }
+
+    function clearLocalAndReset() {
+      clearState();
+      app.exam = null;
+      app.showAnswer = false;
+      app.warnings = [];
+      el.status.textContent = '本地记录已清空。';
+      renderAll();
+    }
+
+    function restoreExamIfValid(saved) {
+      if (!saved || !saved.exam || !Array.isArray(saved.exam.items)) return false;
+      const missing = saved.exam.items.some(i => !app.byId.has(i.qid));
+      if (missing) return false;
+      app.exam = saved.exam;
+      app.showAnswer = !!saved.showAnswer;
+      app.warnings = Array.isArray(saved.warnings) ? saved.warnings : [];
+      el.status.textContent = `已恢复本地试卷：${app.exam.examId}`;
+      return true;
+    }
+
+    async function loadBankFromSameDir() {
+      try {
+        const res = await fetch('./question-bank.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.json();
+        if (!Array.isArray(raw)) throw new Error('JSON 不是数组');
+        app.bank = raw.map(normalizeQuestion).filter(q => q.question && q.options.length > 0 && q.answer.length > 0);
+        app.byId = new Map(app.bank.map(q => [q.id, q]));
+        el.status.textContent = `题库已加载，共 ${app.bank.length} 题。`;
+
+        const saved = loadState();
+        if (!restoreExamIfValid(saved)) startNewExam();
+        else renderAll();
+      } catch (err) {
+        app.bank = [];
+        app.byId = new Map();
+        el.status.textContent = `自动加载失败：${err.message}`;
+        renderAll();
+      }
+    }
+
+    function bindEvents() {
+      el.newExamBtn.addEventListener('click', startNewExam);
+      el.submitBtn.addEventListener('click', submitExam);
+      el.resetCurrentBtn.addEventListener('click', resetCurrentExam);
+      el.clearStorageBtn.addEventListener('click', clearLocalAndReset);
+
+      el.toggleAnswerBtn.addEventListener('click', () => {
+        app.showAnswer = !app.showAnswer;
+        saveState();
+        renderAll();
+      });
+    }
+
+    bindEvents();
+    loadBankFromSameDir();
+  </script>
+</body>
+</html>
