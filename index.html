@@ -3,21 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>全题库练习页（单选/多选/判断/案例）</title>
+  <title>题库首页</title>
   <style>
     :root {
-      --bg-a: #f5f7f3;
-      --bg-b: #e9f3ff;
+      --bg1: #f3f7fc;
+      --bg2: #eef8f3;
       --card: #ffffff;
-      --line: #d9e3ee;
+      --line: #dce5ef;
       --text: #1f2937;
-      --muted: #5f6b7b;
+      --muted: #64748b;
       --primary: #0f766e;
-      --primary-soft: #ddf3ef;
-      --accent: #b45309;
-      --ok: #166534;
-      --bad: #b91c1c;
-      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      --primary-soft: #dbf3ef;
+      --warn: #b45309;
+      --shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     }
 
     * { box-sizing: border-box; }
@@ -25,679 +23,125 @@
     body {
       font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
       color: var(--text);
-      background: radial-gradient(circle at 10% 0%, #fff7ed 0%, transparent 36%),
-                  linear-gradient(140deg, var(--bg-a), var(--bg-b));
       min-height: 100vh;
+      background: radial-gradient(circle at 14% 0%, #fff7ed 0%, transparent 35%), linear-gradient(145deg, var(--bg1), var(--bg2));
     }
 
-    .wrap {
-      width: min(1024px, calc(100% - 22px));
-      margin: 14px auto 24px;
+    .page {
+      min-height: 100vh;
+      padding: 0 10px 22px;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
     }
 
-    .panel {
+    .home-card {
+      width: 100%;
+      min-height: 100vh;
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      box-shadow: var(--shadow);
-    }
-
-    .top {
-      position: sticky;
-      top: 8px;
-      z-index: 10;
-      backdrop-filter: blur(4px);
-    }
-
-    .panel-head {
+      border-radius: 0;
+      padding: 16px;
+      box-shadow: none;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .top.collapsed {
-      padding: 8px 10px;
-    }
-
-    .top.collapsed h1 {
-      font-size: 16px;
-    }
-
-    .top.collapsed .btn-toggle {
-      font-size: 14px;
-      padding: 8px 12px;
-      min-height: 36px;
-    }
-
-    .top-body {
-      margin-top: 8px;
-    }
-
-    .top.collapsed .top-body {
-      display: none;
-    }
-
-    .collapsed-summary {
-      display: none;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.25;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .top.collapsed .collapsed-summary {
-      display: block;
+      flex-direction: column;
+      justify-content: center;
     }
 
     h1 {
       margin: 0;
-      font-size: 20px;
+      font-size: 24px;
       letter-spacing: 0.2px;
     }
 
     .tips {
+      margin: 8px 0 0;
       color: var(--muted);
       font-size: 13px;
-      margin: 8px 0 0;
       line-height: 1.5;
     }
 
-    .status {
-      margin-top: 8px;
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 700;
-      min-height: 20px;
-    }
-
-    .toolbar {
-      margin-top: 12px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .toolbar .wide { grid-column: 1 / -1; }
-
-    .field {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 9px 10px;
-      background: #fff;
-      color: var(--text);
-      width: 100%;
-      font-size: 14px;
-    }
-
-    .actions {
-      margin-top: 8px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border: 1px solid transparent;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
-    }
-
-    button:hover { transform: translateY(-1px); }
-    button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
-    .action-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid transparent;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 14px;
-      text-decoration: none;
-      cursor: pointer;
-      transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
-    }
-    .action-link:hover { transform: translateY(-1px); }
-    .action-link:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
-
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #bfe9e1; }
-    .btn-plain { background: #fff; color: var(--text); border-color: var(--line); }
-    .btn-toggle {
-      background: #0b4f6c;
-      color: #fff;
-      border-color: #0b4f6c;
-      font-size: 16px;
-      font-weight: 700;
-      padding: 12px 18px;
-      min-height: 46px;
-      white-space: nowrap;
-    }
-
-    .pagination {
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .meta-line {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .result {
-      margin-top: 10px;
-      color: var(--accent);
-      font-size: 14px;
-      font-weight: 700;
-      min-height: 20px;
-    }
-
-    .list {
+    .stack {
       margin-top: 14px;
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 13px;
-      box-shadow: var(--shadow);
+    .action-item {
+      width: 100%;
     }
 
-    .card-meta {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-
-    .tag {
-      border-radius: 999px;
-      border: 1px solid #d7e6f7;
-      background: #eef5ff;
-      color: #1e3a8a;
-      font-size: 12px;
-      padding: 2px 10px;
-    }
-
-    .q {
-      margin: 0 0 10px;
-      line-height: 1.6;
-      font-size: 15px;
-      word-break: break-word;
-    }
-
-    .opts {
-      display: grid;
-      gap: 8px;
-    }
-
-    .opt {
-      display: grid;
-      grid-template-columns: 24px 1fr;
-      align-items: center;
-      column-gap: 8px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 9px 10px;
-      background: #fff;
-    }
-
-    .opt input {
-      justify-self: center;
-      margin-top: 0;
-      transform: scale(1.08);
-      accent-color: var(--primary);
-    }
-
-    .opt > span {
-      line-height: 1.5;
-    }
-
-    .opt.correct { background: #edfdf3; border-color: #b7e4c6; }
-    .opt.wrong { background: #fff1f2; border-color: #fecdd3; }
-
-    .feedback {
-      margin-top: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      min-height: 18px;
-    }
-
-    .feedback.ok { color: var(--ok); }
-    .feedback.bad { color: var(--bad); }
-
-    .answer, .analysis {
-      margin-top: 5px;
-      color: var(--muted);
-      font-size: 13px;
-      display: none;
-      line-height: 1.5;
-    }
-
-    .show-answer .answer,
-    .show-answer .analysis { display: block; }
-
-    .empty {
-      border: 1px dashed #bdd2ea;
-      background: #f7fbff;
-      color: #37516d;
+    a.link-btn {
+      width: 100%;
+      border: 1px solid transparent;
       border-radius: 12px;
-      padding: 18px;
-      text-align: center;
-    }
-
-    .back-top {
-      position: fixed;
-      right: 14px;
-      bottom: 16px;
-      width: 46px;
-      height: 46px;
-      border-radius: 999px;
-      border: 1px solid #8ecfc2;
-      background: #0f766e;
-      color: #fff;
+      padding: 12px 14px;
+      font-size: 15px;
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 18px rgba(15, 118, 110, 0.28);
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(8px);
-      transition: opacity .2s ease, transform .2s ease;
-      z-index: 120;
+      cursor: pointer;
+      transition: transform .18s ease;
     }
 
-    .back-top.show {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
+    a.link-btn:hover { transform: translateY(-1px); }
+    a.link-btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #c3e9e2; }
+    .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
+
+    .btn-note {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      padding: 0 2px;
     }
 
-    .back-top svg {
-      width: 22px;
-      height: 22px;
-      display: block;
+    .foot {
+      margin-top: 14px;
+      color: var(--warn);
+      font-size: 12px;
     }
 
     @media (min-width: 760px) {
-      h1 { font-size: 24px; }
-      .toolbar { grid-template-columns: 1fr 1fr 1fr 1fr; }
-      .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .wrap { margin-top: 22px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      * { transition: none !important; }
+      .page { padding: 18px 0 26px; }
+      .home-card {
+        width: min(760px, 100%);
+        min-height: auto;
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+      }
     }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <section class="panel top" id="topPanel">
-      <div class="panel-head">
-        <h1>全题库练习页</h1>
-        <button id="collapseBtn" class="btn-toggle" type="button" aria-expanded="true">收起顶部面板</button>
+  <main class="page">
+    <section class="home-card">
+      <h1>题库入口</h1>
+      <p class="tips">请选择功能页面。按钮均为全宽，手机和电脑都可直接使用。</p>
+
+      <div class="stack">
+        <div class="action-item">
+          <a class="link-btn btn-primary" href="question-bank.html">进入全题库练习</a>
+          <div class="btn-note">筛选题型、关键词搜索、分页练习、显示答案与判分。</div>
+        </div>
+
+        <div class="action-item">
+          <a class="link-btn btn-secondary" href="exam-dual-mode.html">进入双模式模拟考</a>
+          <div class="btn-note">支持“答完看答案”和“提交看答案”，含固定题头和对错统计。</div>
+        </div>
+
+        <div class="action-item">
+          <a class="link-btn btn-plain" href="exam-simulator.html">进入标准模拟考试</a>
+          <div class="btn-note">按配比组卷并本地保存进度，适合完整套卷练习。</div>
+        </div>
       </div>
-      <div id="collapsedSummary" class="collapsed-summary"></div>
 
-      <div id="topBody" class="top-body">
-        <p class="tips">题库将自动加载，请直接筛选、作答和判分。</p>
-        <div id="status" class="status"></div>
-
-        <div class="toolbar">
-          <select id="typeFilter" class="field">
-            <option value="all">全部题型</option>
-            <option value="single">单选题</option>
-            <option value="multiple">多选题</option>
-            <option value="judge">判断题</option>
-            <option value="case">案例题</option>
-          </select>
-          <select id="pageSize" class="field">
-            <option value="30">每页 30 题</option>
-            <option value="50" selected>每页 50 题</option>
-            <option value="100">每页 100 题</option>
-            <option value="0">全部（可能较慢）</option>
-          </select>
-          <input id="keyword" class="field" type="text" placeholder="按题干/题号搜索" />
-        </div>
-
-        <div class="actions">
-          <button id="submitBtn" class="btn-primary" type="button">提交判分</button>
-          <button id="toggleAnswerBtn" class="btn-secondary" type="button">显示标准答案</button>
-          <button id="resetBtn" class="btn-plain" type="button">清空作答</button>
-          <a href="exam-simulator.html" class="action-link btn-primary">进入模拟考试</a>
-          <a href="exam-dual-mode.html" class="action-link btn-secondary">进入双模式模拟考</a>
-        </div>
-
-        <div class="pagination">
-          <button id="prevBtn" class="btn-plain" type="button">上一页</button>
-          <button id="nextBtn" class="btn-plain" type="button">下一页</button>
-          <span id="pageInfo" class="meta-line"></span>
-        </div>
-
-        <div id="metaLine" class="meta-line"></div>
-        <div id="result" class="result"></div>
-      </div>
+      <div class="foot">题库文件默认读取同目录的 <code>question-bank.json</code>。</div>
     </section>
-
-    <section id="list" class="list"></section>
   </main>
-
-  <button id="backTopBtn" class="back-top" type="button" aria-label="返回顶部" title="返回顶部">
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 5l-7 7h4v7h6v-7h4l-7-7z" fill="currentColor"/>
-    </svg>
-  </button>
-
-  <script>
-    const typeLabel = {
-      single: '单选',
-      multiple: '多选',
-      judge: '判断',
-      case: '案例'
-    };
-
-    const state = {
-      questions: [],
-      filtered: [],
-      typeFilter: 'all',
-      keyword: '',
-      page: 1,
-      pageSize: 50,
-      showAnswer: false,
-      submitted: false,
-      topCollapsed: false,
-      selections: {} // { [id]: ['A','C'] }
-    };
-
-    const el = {
-      list: document.getElementById('list'),
-      topPanel: document.getElementById('topPanel'),
-      topBody: document.getElementById('topBody'),
-      collapseBtn: document.getElementById('collapseBtn'),
-      collapsedSummary: document.getElementById('collapsedSummary'),
-      status: document.getElementById('status'),
-      metaLine: document.getElementById('metaLine'),
-      result: document.getElementById('result'),
-      typeFilter: document.getElementById('typeFilter'),
-      pageSize: document.getElementById('pageSize'),
-      keyword: document.getElementById('keyword'),
-      submitBtn: document.getElementById('submitBtn'),
-      toggleAnswerBtn: document.getElementById('toggleAnswerBtn'),
-      resetBtn: document.getElementById('resetBtn'),
-      prevBtn: document.getElementById('prevBtn'),
-      nextBtn: document.getElementById('nextBtn'),
-      pageInfo: document.getElementById('pageInfo'),
-      backTopBtn: document.getElementById('backTopBtn')
-    };
-
-    function normAnswers(arr) {
-      if (!Array.isArray(arr)) return [];
-      return [...new Set(arr.map(x => String(x).trim().toUpperCase()).filter(Boolean))].sort();
-    }
-
-    function safeQuestion(q, index) {
-      const type = ['single', 'multiple', 'judge', 'case'].includes(q.type) ? q.type : 'single';
-      const options = Array.isArray(q.options) ? q.options : [];
-      return {
-        id: q.id || `${type}-${String(index + 1).padStart(4, '0')}`,
-        no: String(q.no ?? index + 1),
-        type,
-        question: String(q.question || '').trim(),
-        options: options.map(o => ({ key: String(o.key || '').trim().toUpperCase(), text: String(o.text || '').trim() })),
-        answer: normAnswers(q.answer),
-        analysis: String(q.analysis || '').trim(),
-        sourcePage: q.sourcePage || ''
-      };
-    }
-
-    function sameAnswers(a, b) {
-      if (a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i += 1) {
-        if (a[i] !== b[i]) return false;
-      }
-      return true;
-    }
-
-    function applyFilter() {
-      const kw = state.keyword.trim().toLowerCase();
-      state.filtered = state.questions.filter(q => {
-        if (state.typeFilter !== 'all' && q.type !== state.typeFilter) return false;
-        if (!kw) return true;
-        const hay = `${q.no} ${q.question}`.toLowerCase();
-        return hay.includes(kw);
-      });
-
-      const totalPages = getTotalPages();
-      if (state.page > totalPages) state.page = totalPages;
-      if (state.page < 1) state.page = 1;
-    }
-
-    function getTotalPages() {
-      if (state.pageSize === 0) return 1;
-      return Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
-    }
-
-    function getVisibleQuestions() {
-      if (state.pageSize === 0) return state.filtered;
-      const start = (state.page - 1) * state.pageSize;
-      return state.filtered.slice(start, start + state.pageSize);
-    }
-
-    function renderMeta() {
-      const total = state.questions.length;
-      const current = state.filtered.length;
-      const totalPages = getTotalPages();
-      const typeStats = ['single', 'multiple', 'judge', 'case']
-        .map(t => `${typeLabel[t]}:${state.questions.filter(q => q.type === t).length}`)
-        .join(' / ');
-      el.metaLine.textContent = `题量：${total}（${typeStats}）｜当前筛选：${current}`;
-      el.pageInfo.textContent = `第 ${state.page} / ${totalPages} 页`;
-      el.prevBtn.disabled = state.page <= 1;
-      el.nextBtn.disabled = state.page >= totalPages;
-    }
-
-    function renderList() {
-      const visible = getVisibleQuestions();
-      if (!visible.length) {
-        el.list.innerHTML = '<div class="empty">当前筛选无题目，请调整题型或关键词。</div>';
-        return;
-      }
-
-      const startIndex = state.pageSize === 0 ? 0 : (state.page - 1) * state.pageSize;
-      el.list.innerHTML = visible.map((q, i) => {
-        const inputType = q.type === 'multiple' ? 'checkbox' : 'radio';
-        const selected = state.selections[q.id] || [];
-        const isCorrect = sameAnswers(selected, q.answer);
-
-        const optionsHtml = q.options.map(opt => {
-          const checked = selected.includes(opt.key) ? 'checked' : '';
-          let cls = 'opt';
-          if (state.submitted) {
-            if (q.answer.includes(opt.key)) cls += ' correct';
-            if (selected.includes(opt.key) && !q.answer.includes(opt.key)) cls += ' wrong';
-          }
-          return `
-            <label class="${cls}" data-qid="${q.id}" data-key="${opt.key}">
-              <input type="${inputType}" name="q-${q.id}" value="${opt.key}" ${checked} />
-              <span><strong>${opt.key}.</strong> ${opt.text}</span>
-            </label>`;
-        }).join('');
-
-        const feedback = !state.submitted
-          ? ''
-          : `<div class="feedback ${isCorrect ? 'ok' : 'bad'}">${isCorrect ? '回答正确' : '回答错误'}（你的答案：${selected.join('、') || '未作答'}）</div>`;
-
-        const showAnsClass = state.showAnswer ? 'show-answer' : '';
-
-        return `
-          <article class="card ${showAnsClass}" id="card-${q.id}">
-            <div class="card-meta">
-              <span class="tag">#${startIndex + i + 1}</span>
-              <span class="tag">题号 ${q.no}</span>
-              <span class="tag">${typeLabel[q.type] || q.type}</span>
-              <span class="tag">${q.id}</span>
-              ${q.sourcePage ? `<span class="tag">P${q.sourcePage}</span>` : ''}
-            </div>
-            <p class="q">${q.question || '（题干为空）'}</p>
-            <div class="opts">${optionsHtml}</div>
-            ${feedback}
-            <div class="answer">标准答案：${q.answer.join('、') || '无'}</div>
-            <div class="analysis">解析：${q.analysis || '无'}</div>
-          </article>`;
-      }).join('');
-
-      bindOptionEvents();
-    }
-
-    function bindOptionEvents() {
-      const inputs = el.list.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-      inputs.forEach(input => {
-        input.addEventListener('change', () => {
-          const name = input.name;
-          const qid = name.replace('q-', '');
-          const checked = Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
-            .map(i => i.value)
-            .sort();
-          state.selections[qid] = checked;
-        });
-      });
-    }
-
-    function renderAll() {
-      applyFilter();
-      renderMeta();
-      renderList();
-      renderTopPanel();
-    }
-
-    function renderTopPanel() {
-      if (state.topCollapsed) {
-        el.topPanel.classList.add('collapsed');
-        el.collapseBtn.textContent = '展开顶部面板';
-        el.collapseBtn.setAttribute('aria-expanded', 'false');
-      } else {
-        el.topPanel.classList.remove('collapsed');
-        el.collapseBtn.textContent = '收起顶部面板';
-        el.collapseBtn.setAttribute('aria-expanded', 'true');
-      }
-
-      const totalPages = getTotalPages();
-      const scoreText = el.result.textContent ? `｜${el.result.textContent}` : '';
-      el.collapsedSummary.textContent = `当前筛选 ${state.filtered.length} 题，第 ${state.page}/${totalPages} 页${scoreText}`;
-    }
-
-    function submitScore() {
-      state.submitted = true;
-      let right = 0;
-      let answered = 0;
-      state.filtered.forEach(q => {
-        const chosen = normAnswers(state.selections[q.id] || []);
-        if (chosen.length > 0) answered += 1;
-        if (sameAnswers(chosen, q.answer)) right += 1;
-      });
-      el.result.textContent = `当前筛选得分：${right} / ${state.filtered.length}（已作答 ${answered} 题）`;
-      renderList();
-      renderTopPanel();
-    }
-
-    function resetAnswers() {
-      state.selections = {};
-      state.submitted = false;
-      el.result.textContent = '';
-      renderList();
-      renderTopPanel();
-    }
-
-    async function loadFromSameDir() {
-      try {
-        const res = await fetch('./question-bank.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const raw = await res.json();
-        if (!Array.isArray(raw)) throw new Error('JSON 不是数组');
-        state.questions = raw.map(safeQuestion).filter(q => q.question);
-        el.status.textContent = `题库已加载，共 ${state.questions.length} 题。`;
-        renderAll();
-      } catch (err) {
-        state.questions = [];
-        el.status.textContent = `自动读取失败：${err.message}。请通过本地服务器访问该页面。`;
-        renderAll();
-      }
-    }
-
-    function bindTopEvents() {
-      el.typeFilter.addEventListener('change', () => {
-        state.typeFilter = el.typeFilter.value;
-        state.page = 1;
-        renderAll();
-      });
-
-      el.pageSize.addEventListener('change', () => {
-        state.pageSize = Number(el.pageSize.value);
-        state.page = 1;
-        renderAll();
-      });
-
-      el.keyword.addEventListener('input', () => {
-        state.keyword = el.keyword.value;
-        state.page = 1;
-        renderAll();
-      });
-
-      el.prevBtn.addEventListener('click', () => {
-        state.page = Math.max(1, state.page - 1);
-        renderAll();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
-      el.nextBtn.addEventListener('click', () => {
-        state.page = Math.min(getTotalPages(), state.page + 1);
-        renderAll();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
-      el.submitBtn.addEventListener('click', submitScore);
-
-      el.toggleAnswerBtn.addEventListener('click', () => {
-        state.showAnswer = !state.showAnswer;
-        el.toggleAnswerBtn.textContent = state.showAnswer ? '隐藏标准答案' : '显示标准答案';
-        renderList();
-      });
-
-      el.resetBtn.addEventListener('click', resetAnswers);
-
-      el.collapseBtn.addEventListener('click', () => {
-        state.topCollapsed = !state.topCollapsed;
-        renderTopPanel();
-      });
-
-      window.addEventListener('scroll', () => {
-        const show = window.scrollY > 220;
-        el.backTopBtn.classList.toggle('show', show);
-      });
-
-      el.backTopBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    }
-
-    bindTopEvents();
-    loadFromSameDir();
-  </script>
 </body>
 </html>
