@@ -49,6 +49,63 @@
       backdrop-filter: blur(4px);
     }
 
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel-head-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .top-body {
+      margin-top: 8px;
+    }
+
+    .sticky.collapsed {
+      padding: 8px 10px;
+    }
+
+    .sticky.collapsed h1 {
+      font-size: 16px;
+    }
+
+    .sticky.collapsed .btn-toggle {
+      font-size: 13px;
+      padding: 8px 10px;
+      min-height: 34px;
+    }
+
+    .sticky.collapsed .panel-head-actions .action-link {
+      font-size: 13px;
+      padding: 8px 10px;
+    }
+
+    .sticky.collapsed .top-body {
+      display: none;
+    }
+
+    .collapsed-summary {
+      display: none;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sticky.collapsed .collapsed-summary {
+      display: block;
+    }
+
     h1 {
       margin: 0;
       font-size: 20px;
@@ -106,10 +163,35 @@
     button:hover { transform: translateY(-1px); }
     button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
 
+    .action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .18s ease, background-color .18s ease;
+    }
+    .action-link:hover { transform: translateY(-1px); }
+    .action-link:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #c3e9e2; }
     .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
     .btn-danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+    .btn-toggle {
+      background: #0b4f6c;
+      color: #fff;
+      border-color: #0b4f6c;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 14px;
+      min-height: 42px;
+      white-space: nowrap;
+    }
 
     .meta {
       margin-top: 8px;
@@ -233,6 +315,39 @@
       text-align: center;
     }
 
+    .back-top {
+      position: fixed;
+      right: 14px;
+      bottom: 16px;
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      border: 1px solid #8ecfc2;
+      background: #0f766e;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 18px rgba(15, 118, 110, 0.28);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 120;
+    }
+
+    .back-top.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .back-top svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+    }
+
     @media (min-width: 760px) {
       h1 { font-size: 24px; }
       .grid { grid-template-columns: 1fr 1fr; }
@@ -247,29 +362,44 @@
 </head>
 <body>
   <main class="wrap">
-    <section class="panel sticky">
-      <h1>模拟考试</h1>
-      <p class="tips">组卷规则：50单选 + 10多选 + 15判断 + 15案例。多选每题2分，其它每题1分，60分及格。</p>
-      <div id="status" class="status"></div>
-
-      <div class="grid">
-        <button id="newExamBtn" class="btn-primary" type="button">开始/重考（重新抽题）</button>
+    <section class="panel sticky" id="topPanel">
+      <div class="panel-head">
+        <h1>模拟考试</h1>
+        <div class="panel-head-actions">
+          <a href="index.html" class="action-link btn-plain">返回首页</a>
+          <button id="collapseBtn" class="btn-toggle" type="button" aria-expanded="true">收起顶部面板</button>
+        </div>
       </div>
+      <div id="collapsedSummary" class="collapsed-summary"></div>
 
-      <div class="actions">
-        <button id="submitBtn" class="btn-primary" type="button">交卷评分</button>
-        <button id="toggleAnswerBtn" class="btn-secondary" type="button">显示标准答案</button>
-        <button id="resetCurrentBtn" class="btn-plain" type="button">重做本卷（不换题）</button>
-        <button id="clearStorageBtn" class="btn-danger" type="button">清空本地记录</button>
+      <div id="topBody" class="top-body">
+        <p class="tips">组卷规则：50单选 + 10多选 + 15判断 + 15案例。多选每题2分，其它每题1分，60分及格。</p>
+        <div id="status" class="status"></div>
+
+        <div class="grid">
+          <button id="newExamBtn" class="btn-primary" type="button">开始/重考（重新抽题）</button>
+        </div>
+
+        <div class="actions">
+          <button id="submitBtn" class="btn-primary" type="button">交卷评分</button>
+          <button id="toggleAnswerBtn" class="btn-secondary" type="button">显示标准答案</button>
+          <button id="resetCurrentBtn" class="btn-plain" type="button">重做本卷（不换题）</button>
+          <button id="clearStorageBtn" class="btn-danger" type="button">清空本地记录</button>
+        </div>
+
+        <div id="meta" class="meta"></div>
+        <div id="score" class="score"></div>
+        <div id="warn" class="warn"></div>
       </div>
-
-      <div id="meta" class="meta"></div>
-      <div id="score" class="score"></div>
-      <div id="warn" class="warn"></div>
     </section>
 
     <section id="list" class="list"></section>
   </main>
+  <button id="backTopBtn" class="back-top" type="button" aria-label="返回顶部" title="返回顶部">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 5l-7 7h4v7h6v-7h4l-7-7z" fill="currentColor"/>
+    </svg>
+  </button>
   <script>
     const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
     const PASS_SCORE = 60;
@@ -282,10 +412,15 @@
       byId: new Map(),
       exam: null,
       showAnswer: false,
+      topCollapsed: false,
       warnings: []
     };
 
     const el = {
+      topPanel: document.getElementById('topPanel'),
+      topBody: document.getElementById('topBody'),
+      collapseBtn: document.getElementById('collapseBtn'),
+      collapsedSummary: document.getElementById('collapsedSummary'),
       status: document.getElementById('status'),
       meta: document.getElementById('meta'),
       score: document.getElementById('score'),
@@ -295,7 +430,8 @@
       submitBtn: document.getElementById('submitBtn'),
       toggleAnswerBtn: document.getElementById('toggleAnswerBtn'),
       resetCurrentBtn: document.getElementById('resetCurrentBtn'),
-      clearStorageBtn: document.getElementById('clearStorageBtn')
+      clearStorageBtn: document.getElementById('clearStorageBtn'),
+      backTopBtn: document.getElementById('backTopBtn')
     };
 
     function shuffle(arr) {
@@ -595,6 +731,22 @@
       updateMeta();
       renderList();
       el.toggleAnswerBtn.textContent = app.showAnswer ? '隐藏标准答案' : '显示标准答案';
+      renderTopPanel();
+    }
+
+    function renderTopPanel() {
+      if (app.topCollapsed) {
+        el.topPanel.classList.add('collapsed');
+        el.collapseBtn.textContent = '展开顶部面板';
+        el.collapseBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        el.topPanel.classList.remove('collapsed');
+        el.collapseBtn.textContent = '收起顶部面板';
+        el.collapseBtn.setAttribute('aria-expanded', 'true');
+      }
+      const scoreText = el.score.textContent ? `｜${el.score.textContent}` : '';
+      const countText = app.exam ? `试卷 ${app.exam.items.length} 题` : '未开始考试';
+      el.collapsedSummary.textContent = `${countText}${scoreText}`;
     }
 
     function startNewExam() {
@@ -657,7 +809,6 @@
       app.exam = saved.exam;
       app.showAnswer = !!saved.showAnswer;
       app.warnings = Array.isArray(saved.warnings) ? saved.warnings : [];
-      el.status.textContent = `已恢复本地试卷：${app.exam.examId}`;
       return true;
     }
 
@@ -692,6 +843,20 @@
         app.showAnswer = !app.showAnswer;
         saveState();
         renderAll();
+      });
+
+      el.collapseBtn.addEventListener('click', () => {
+        app.topCollapsed = !app.topCollapsed;
+        renderTopPanel();
+      });
+
+      window.addEventListener('scroll', () => {
+        const show = window.scrollY > 220;
+        el.backTopBtn.classList.toggle('show', show);
+      });
+
+      el.backTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
 

@@ -91,6 +91,7 @@
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #c3e9e2; }
     .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
+    .btn-accent { background: #dcfce7; border-color: #86efac; color: #166534; }
 
     .btn-note {
       margin-top: 4px;
@@ -98,12 +99,6 @@
       font-size: 12px;
       line-height: 1.35;
       padding: 0 2px;
-    }
-
-    .foot {
-      margin-top: 14px;
-      color: var(--warn);
-      font-size: 12px;
     }
 
     @media (min-width: 760px) {
@@ -120,7 +115,7 @@
 <body>
   <main class="page">
     <section class="home-card">
-      <h1>题库入口</h1>
+      <h1>C3类安全员题库大全</h1>
       <p class="tips">请选择功能页面。按钮均为全宽，手机和电脑都可直接使用。</p>
 
       <div class="stack">
@@ -135,12 +130,10 @@
         </div>
 
         <div class="action-item">
-          <a class="link-btn btn-plain" href="exam-simulator.html">进入标准模拟考试</a>
+          <a class="link-btn btn-accent" href="exam-simulator.html">进入标准模拟考试</a>
           <div class="btn-note">按配比组卷并本地保存进度，适合完整套卷练习。</div>
         </div>
       </div>
-
-      <div class="foot">题库文件默认读取同目录的 <code>question-bank.json</code>。</div>
     </section>
   </main>
 </body>
