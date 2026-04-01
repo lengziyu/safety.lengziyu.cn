@@ -391,6 +391,11 @@
   <script>
     const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
     const WRONG_SOURCE = 'exam_dual';
+    const AUTO_NEXT_SUBMIT_MS = 1000;
+    const AUTO_REVEAL_DEBOUNCE_MS = 450;
+    const AUTO_REVIEW_STAY_MS = 1600;
+    const SWIPE_X_THRESHOLD = 70;
+    const SWIPE_Y_LIMIT = 45;
 
     const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
     const PASS_SCORE = 60;
@@ -402,7 +407,8 @@
       byId: new Map(),
       exam: null,
       warnings: [],
-      autoNextTimer: null
+      autoNextTimer: null,
+      swipeStart: null
     };
 
     const el = {
@@ -539,30 +545,45 @@
       }
     }
 
-    function scheduleAutoNext() {
+    function scheduleSubmitAutoNext() {
       clearAutoNextTimer();
       app.autoNextTimer = setTimeout(() => {
         app.autoNextTimer = null;
         if (!app.exam || app.exam.submitted) return;
-        finalizeCurrentAnswerAndProceed();
-      }, 1000);
+        finalizeCurrentAnswerAndProceed({ instantFlow: false });
+      }, AUTO_NEXT_SUBMIT_MS);
     }
 
-    function finalizeCurrentAnswerAndProceed() {
+    function scheduleInstantRevealThenNext() {
+      clearAutoNextTimer();
+      app.autoNextTimer = setTimeout(() => {
+        app.autoNextTimer = null;
+        if (!app.exam || app.exam.submitted) return;
+        const done = finalizeCurrentAnswer({ recordWrongInInstant: true });
+        if (!done) return;
+        renderExam(); // Show right/wrong + correct answers first.
+        app.autoNextTimer = setTimeout(() => {
+          app.autoNextTimer = null;
+          if (!app.exam || app.exam.submitted) return;
+          proceedToNextOrSubmit();
+        }, AUTO_REVIEW_STAY_MS);
+      }, AUTO_REVEAL_DEBOUNCE_MS);
+    }
+
+    function finalizeCurrentAnswer({ recordWrongInInstant }) {
       if (!app.exam || app.exam.submitted) return;
       const item = app.exam.items[app.exam.currentIndex];
-      if (!item) return;
+      if (!item) return false;
       const q = app.byId.get(item.qid);
-      if (!q) return;
+      if (!q) return false;
       const selected = uniqueSortedAnswers(app.exam.selections[q.id] || []);
-      if (!selected.length) return;
+      if (!selected.length) return false;
 
       if (!app.exam.locked) app.exam.locked = {};
       const alreadyLocked = !!app.exam.locked[q.id];
       app.exam.locked[q.id] = true;
 
-      // In instant mode, write wrong question once when this question is finalized.
-      if (app.exam.mode === 'instant' && !alreadyLocked && !sameAnswers(selected, q.answer)) {
+      if (recordWrongInInstant && app.exam.mode === 'instant' && !alreadyLocked && !sameAnswers(selected, q.answer)) {
         upsertWrongQuestion({
           id: q.id,
           no: q.no,
@@ -575,15 +596,36 @@
         });
       }
 
+      saveState();
+      return true;
+    }
+
+    function proceedToNextOrSubmit() {
+      if (!app.exam || app.exam.submitted) return;
       if (app.exam.currentIndex >= app.exam.items.length - 1) {
-        saveState();
         submitExam();
         return;
       }
-
       app.exam.currentIndex += 1;
       saveState();
       renderExam();
+    }
+
+    function finalizeCurrentAnswerAndProceed({ instantFlow }) {
+      const ok = finalizeCurrentAnswer({ recordWrongInInstant: instantFlow });
+      if (!ok) return false;
+      if (instantFlow) {
+        renderExam();
+        clearAutoNextTimer();
+        app.autoNextTimer = setTimeout(() => {
+          app.autoNextTimer = null;
+          if (!app.exam || app.exam.submitted) return;
+          proceedToNextOrSubmit();
+        }, AUTO_REVIEW_STAY_MS);
+        return true;
+      }
+      proceedToNextOrSubmit();
+      return true;
     }
 
     function idsByType(type) {
@@ -817,11 +859,12 @@
         ${feedback}
         <div class="answer">标准答案：${q.answer.join('、') || '无'}</div>
         <div class="analysis">解析：${q.analysis || '无'}</div>
-        <div class="lock-tip">${locked ? '已选' : '作答后 1 秒自动下一题'}</div>
+        <div class="lock-tip">${locked ? '已作答' : (app.exam.mode === 'instant' ? '作答后先显示对错，再自动下一题' : '作答后自动下一题，交卷后看对错')}</div>
       `;
 
+      const hasSelected = selected.length > 0;
       el.prevBtn.disabled = app.exam.currentIndex <= 0;
-      el.nextBtn.disabled = !locked;
+      el.nextBtn.disabled = !(locked || hasSelected);
       el.nextBtn.textContent = app.exam.currentIndex >= app.exam.items.length - 1 ? '交卷' : '下一题';
 
       if (app.exam.submitted && app.exam.scoreDetail) {
@@ -846,7 +889,11 @@
           app.exam.selections[q.id] = checked.sort();
           saveState();
           renderQuestion();
-          scheduleAutoNext();
+          if (app.exam.mode === 'instant') {
+            scheduleInstantRevealThenNext();
+          } else {
+            scheduleSubmitAutoNext();
+          }
         });
       });
     }
@@ -981,17 +1028,23 @@
         if (!app.exam) return;
         clearAutoNextTimer();
         const current = app.exam.items[app.exam.currentIndex];
-        if (!app.exam.locked || !app.exam.locked[current.qid]) {
-          el.status.textContent = '请先作答当前题。';
+        const locked = !!(app.exam.locked && app.exam.locked[current.qid]);
+        const q = app.byId.get(current.qid);
+        const selected = q ? uniqueSortedAnswers(app.exam.selections[q.id] || []) : [];
+        if (!locked) {
+          if (!selected.length) {
+            el.status.textContent = '请先作答当前题。';
+            return;
+          }
+          // Manual next also honors instant feedback before leaving.
+          if (app.exam.mode === 'instant') {
+            finalizeCurrentAnswerAndProceed({ instantFlow: true });
+          } else {
+            finalizeCurrentAnswerAndProceed({ instantFlow: false });
+          }
           return;
         }
-        if (app.exam.currentIndex >= app.exam.items.length - 1) {
-          submitExam();
-          return;
-        }
-        app.exam.currentIndex += 1;
-        saveState();
-        renderExam();
+        proceedToNextOrSubmit();
       });
 
       el.backSetupBtn.addEventListener('click', () => {
@@ -1009,6 +1062,61 @@
         el.status.textContent = '本地记录与错题已清空。';
         showSetup();
       });
+
+      bindSwipeNavigation();
+    }
+
+    function bindSwipeNavigation() {
+      const card = el.questionCard;
+      if (!card) return;
+      card.addEventListener('touchstart', (e) => {
+        if (!app.exam) return;
+        const t = e.target;
+        if (t && t.closest && t.closest('input,label,button,a')) {
+          app.swipeStart = null;
+          return;
+        }
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) return;
+        app.swipeStart = { x: touch.clientX, y: touch.clientY };
+      }, { passive: true });
+
+      card.addEventListener('touchend', (e) => {
+        if (!app.exam || !app.swipeStart) return;
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) return;
+        const dx = touch.clientX - app.swipeStart.x;
+        const dy = touch.clientY - app.swipeStart.y;
+        app.swipeStart = null;
+
+        if (Math.abs(dx) < SWIPE_X_THRESHOLD) return;
+        if (Math.abs(dy) > SWIPE_Y_LIMIT) return;
+        if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
+
+        if (dx > 0) {
+          if (app.exam.currentIndex <= 0) return;
+          clearAutoNextTimer();
+          app.exam.currentIndex = Math.max(0, app.exam.currentIndex - 1);
+          saveState();
+          renderExam();
+        } else {
+          clearAutoNextTimer();
+          const current = app.exam.items[app.exam.currentIndex];
+          const locked = !!(app.exam.locked && app.exam.locked[current.qid]);
+          const q = app.byId.get(current.qid);
+          const selected = q ? uniqueSortedAnswers(app.exam.selections[q.id] || []) : [];
+          if (!locked) {
+            if (!selected.length) return;
+            if (app.exam.mode === 'instant') {
+              finalizeCurrentAnswerAndProceed({ instantFlow: true });
+            } else {
+              finalizeCurrentAnswerAndProceed({ instantFlow: false });
+            }
+            return;
+          }
+          proceedToNextOrSubmit();
+        }
+      }, { passive: true });
     }
 
     bindEvents();
