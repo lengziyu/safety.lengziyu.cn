@@ -197,7 +197,7 @@
       </div>
 
       <section class="wrong-box">
-        <h2 class="wrong-title">首页错题（来自全题库练习）</h2>
+        <h2 class="wrong-title">首页错题（全部模式）</h2>
         <div id="wrongMeta" class="wrong-meta"></div>
         <div id="wrongList" class="wrong-list"></div>
         <div class="action-item" style="margin-top:8px;">
@@ -209,7 +209,11 @@
 
   <script>
     const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
-    const WRONG_SOURCE = 'practice';
+    const SOURCE_LABEL = {
+      practice: '全题库练习',
+      exam_standard: '标准模拟',
+      exam_dual: '双模式模拟'
+    };
 
     function loadWrongBook() {
       try {
@@ -229,25 +233,24 @@
       const metaEl = document.getElementById('wrongMeta');
       const listEl = document.getElementById('wrongList');
       const items = loadWrongBook()
-        .filter(i => i.source === WRONG_SOURCE)
         .sort((a, b) => (b.lastWrongAt || 0) - (a.lastWrongAt || 0));
 
       metaEl.textContent = `共 ${items.length} 题错题。`;
       if (!items.length) {
-        listEl.innerHTML = '<div class=\"wrong-item\">暂无错题，去全题库练习开始刷题吧。</div>';
+        listEl.innerHTML = '<div class=\"wrong-item\">暂无错题，去任意练习或模拟模式开始刷题吧。</div>';
         return;
       }
 
       listEl.innerHTML = items.slice(0, 50).map((i, idx) => {
-        const title = `${idx + 1}. [${i.type || '-'}] 题号 ${i.no || '-'}（错 ${i.wrongCount || 1} 次）`;
+        const source = SOURCE_LABEL[i.source] || i.source || '-';
+        const title = `${idx + 1}. [${source}] [${i.type || '-'}] 题号 ${i.no || '-'}（错 ${i.wrongCount || 1} 次）`;
         const q = String(i.question || '').trim();
         return `<div class=\"wrong-item\"><div class=\"wrong-item-head\">${title}</div><div>${q}</div></div>`;
       }).join('');
     }
 
     document.getElementById('clearWrongBtn').addEventListener('click', () => {
-      const kept = loadWrongBook().filter(i => i.source !== WRONG_SOURCE);
-      saveWrongBook(kept);
+      saveWrongBook([]);
       renderWrongList();
     });
 

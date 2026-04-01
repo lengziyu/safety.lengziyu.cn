@@ -381,7 +381,6 @@
     <section class="exam-main" id="examMain">
       <article class="card" id="questionCard"></article>
       <div class="exam-actions">
-        <button id="lockAnswerBtn" class="btn-primary" type="button">确认</button>
         <button id="prevBtn" class="btn-plain" type="button">上一题</button>
         <button id="nextBtn" class="btn-plain" type="button">下一题</button>
       </div>
@@ -420,7 +419,6 @@
       clearStorageBtn: document.getElementById('clearStorageBtn'),
       prevBtn: document.getElementById('prevBtn'),
       nextBtn: document.getElementById('nextBtn'),
-      lockAnswerBtn: document.getElementById('lockAnswerBtn'),
       backSetupBtn: document.getElementById('backSetupBtn'),
       headerMode: document.getElementById('headerMode'),
       headerPage: document.getElementById('headerPage'),
@@ -546,14 +544,46 @@
       app.autoNextTimer = setTimeout(() => {
         app.autoNextTimer = null;
         if (!app.exam || app.exam.submitted) return;
-        if (app.exam.currentIndex >= app.exam.items.length - 1) {
-          submitExam();
-          return;
-        }
-        app.exam.currentIndex += 1;
-        saveState();
-        renderExam();
+        finalizeCurrentAnswerAndProceed();
       }, 1000);
+    }
+
+    function finalizeCurrentAnswerAndProceed() {
+      if (!app.exam || app.exam.submitted) return;
+      const item = app.exam.items[app.exam.currentIndex];
+      if (!item) return;
+      const q = app.byId.get(item.qid);
+      if (!q) return;
+      const selected = uniqueSortedAnswers(app.exam.selections[q.id] || []);
+      if (!selected.length) return;
+
+      if (!app.exam.locked) app.exam.locked = {};
+      const alreadyLocked = !!app.exam.locked[q.id];
+      app.exam.locked[q.id] = true;
+
+      // In instant mode, write wrong question once when this question is finalized.
+      if (app.exam.mode === 'instant' && !alreadyLocked && !sameAnswers(selected, q.answer)) {
+        upsertWrongQuestion({
+          id: q.id,
+          no: q.no,
+          type: q.type,
+          question: q.question,
+          options: q.options,
+          answer: q.answer,
+          analysis: q.analysis,
+          sourcePage: q.sourcePage
+        });
+      }
+
+      if (app.exam.currentIndex >= app.exam.items.length - 1) {
+        saveState();
+        submitExam();
+        return;
+      }
+
+      app.exam.currentIndex += 1;
+      saveState();
+      renderExam();
     }
 
     function idsByType(type) {
@@ -787,14 +817,12 @@
         ${feedback}
         <div class="answer">标准答案：${q.answer.join('、') || '无'}</div>
         <div class="analysis">解析：${q.analysis || '无'}</div>
-        <div class="lock-tip">${locked ? '已选' : '未确认'}</div>
+        <div class="lock-tip">${locked ? '已选' : '作答后 1 秒自动下一题'}</div>
       `;
 
       el.prevBtn.disabled = app.exam.currentIndex <= 0;
       el.nextBtn.disabled = !locked;
       el.nextBtn.textContent = app.exam.currentIndex >= app.exam.items.length - 1 ? '交卷' : '下一题';
-      el.lockAnswerBtn.disabled = app.exam.submitted || locked || selected.length === 0;
-      el.lockAnswerBtn.textContent = locked ? '已选' : '确认';
 
       if (app.exam.submitted && app.exam.scoreDetail) {
         const s = app.exam.scoreDetail;
@@ -818,6 +846,7 @@
           app.exam.selections[q.id] = checked.sort();
           saveState();
           renderQuestion();
+          scheduleAutoNext();
         });
       });
     }
@@ -863,7 +892,7 @@
       clearAutoNextTimer();
       const allLocked = app.exam.items.every(i => app.exam.locked && app.exam.locked[i.qid]);
       if (!allLocked) {
-        el.status.textContent = '请先完成并确认全部题目后再交卷。';
+        el.status.textContent = '请先完成全部题目后再交卷。';
         return;
       }
       app.exam.submitted = true;
@@ -953,7 +982,7 @@
         clearAutoNextTimer();
         const current = app.exam.items[app.exam.currentIndex];
         if (!app.exam.locked || !app.exam.locked[current.qid]) {
-          el.status.textContent = '请先确认当前题答案，再进入下一题。';
+          el.status.textContent = '请先作答当前题。';
           return;
         }
         if (app.exam.currentIndex >= app.exam.items.length - 1) {
@@ -963,38 +992,6 @@
         app.exam.currentIndex += 1;
         saveState();
         renderExam();
-      });
-
-      el.lockAnswerBtn.addEventListener('click', () => {
-        if (!app.exam || app.exam.submitted) return;
-        const item = app.exam.items[app.exam.currentIndex];
-        const q = app.byId.get(item.qid);
-        if (!q) return;
-        const selected = uniqueSortedAnswers(app.exam.selections[q.id] || []);
-        if (selected.length === 0) {
-          el.status.textContent = '请先选择答案再确认本题。';
-          return;
-        }
-        if (!app.exam.locked) app.exam.locked = {};
-        app.exam.locked[q.id] = true;
-
-        if (app.exam.mode === 'instant' && !sameAnswers(selected, q.answer)) {
-          upsertWrongQuestion({
-            id: q.id,
-            no: q.no,
-            type: q.type,
-            question: q.question,
-            options: q.options,
-            answer: q.answer,
-            analysis: q.analysis,
-            sourcePage: q.sourcePage
-          });
-        }
-
-        saveState();
-        el.status.textContent = '已选，1秒后自动下一题';
-        renderExam();
-        scheduleAutoNext();
       });
 
       el.backSetupBtn.addEventListener('click', () => {
