@@ -401,6 +401,9 @@
     </svg>
   </button>
   <script>
+    const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
+    const WRONG_SOURCE = 'exam_standard';
+
     const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
     const PASS_SCORE = 60;
     const STORAGE_KEY = 'exam_sim_state_v1';
@@ -433,6 +436,53 @@
       clearStorageBtn: document.getElementById('clearStorageBtn'),
       backTopBtn: document.getElementById('backTopBtn')
     };
+
+    function loadWrongBook() {
+      try {
+        const raw = localStorage.getItem(WRONG_BOOK_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveWrongBook(items) {
+      localStorage.setItem(WRONG_BOOK_KEY, JSON.stringify(items));
+    }
+
+    function upsertWrongQuestion(q) {
+      const book = loadWrongBook();
+      const idx = book.findIndex(i => i.source === WRONG_SOURCE && i.id === q.id);
+      const now = Date.now();
+      if (idx >= 0) {
+        const old = book[idx];
+        book[idx] = {
+          ...old,
+          ...q,
+          source: WRONG_SOURCE,
+          wrongCount: (old.wrongCount || 1) + 1,
+          lastWrongAt: now
+        };
+      } else {
+        book.push({
+          ...q,
+          source: WRONG_SOURCE,
+          wrongCount: 1,
+          lastWrongAt: now
+        });
+      }
+      saveWrongBook(book);
+    }
+
+    function countWrongQuestions() {
+      return loadWrongBook().filter(i => i.source === WRONG_SOURCE).length;
+    }
+
+    function clearWrongQuestions() {
+      const kept = loadWrongBook().filter(i => i.source !== WRONG_SOURCE);
+      saveWrongBook(kept);
+    }
 
     function shuffle(arr) {
       const a = [...arr];
@@ -636,7 +686,7 @@
 
       const cnt = { single: 0, multiple: 0, judge: 0, case: 0 };
       app.exam.items.forEach(i => { cnt[i.slotType] += 1; });
-      el.meta.textContent = `试卷ID：${app.exam.examId} ｜ 题量：${app.exam.items.length} ｜ 配比：单选${cnt.single} / 多选${cnt.multiple} / 判断${cnt.judge} / 案例${cnt.case} ｜ 及格线：${PASS_SCORE}分`;
+      el.meta.textContent = `试卷ID：${app.exam.examId} ｜ 题量：${app.exam.items.length} ｜ 配比：单选${cnt.single} / 多选${cnt.multiple} / 判断${cnt.judge} / 案例${cnt.case} ｜ 及格线：${PASS_SCORE}分 ｜ 错题：${countWrongQuestions()}`;
 
       if (app.exam.submitted && app.exam.scoreDetail) {
         const s = app.exam.scoreDetail;
@@ -776,6 +826,26 @@
       const detail = calcScore();
       app.exam.submitted = true;
       app.exam.scoreDetail = detail;
+
+      // Record wrong questions when submitting this paper.
+      app.exam.items.forEach(item => {
+        const q = app.byId.get(item.qid);
+        if (!q) return;
+        const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+        if (!isExactlyCorrect(selected, q.answer)) {
+          upsertWrongQuestion({
+            id: q.id,
+            no: q.no,
+            type: q.type,
+            question: q.question,
+            options: q.options,
+            answer: q.answer,
+            analysis: q.analysis,
+            sourcePage: q.sourcePage
+          });
+        }
+      });
+
       saveState();
       el.status.textContent = detail.pass ? '交卷完成：恭喜通过。' : '交卷完成：未通过，可重做或重考。';
       renderAll();
@@ -795,10 +865,11 @@
 
     function clearLocalAndReset() {
       clearState();
+      clearWrongQuestions();
       app.exam = null;
       app.showAnswer = false;
       app.warnings = [];
-      el.status.textContent = '本地记录已清空。';
+      el.status.textContent = '本地记录与错题已清空。';
       renderAll();
     }
 

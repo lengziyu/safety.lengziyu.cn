@@ -390,6 +390,9 @@
   </main>
 
   <script>
+    const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
+    const WRONG_SOURCE = 'exam_dual';
+
     const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
     const PASS_SCORE = 60;
     const STORAGE_KEY = 'exam_dual_mode_state_v2';
@@ -399,7 +402,8 @@
       bank: [],
       byId: new Map(),
       exam: null,
-      warnings: []
+      warnings: [],
+      autoNextTimer: null
     };
 
     const el = {
@@ -422,6 +426,53 @@
       headerPage: document.getElementById('headerPage'),
       headerStats: document.getElementById('headerStats')
     };
+
+    function loadWrongBook() {
+      try {
+        const raw = localStorage.getItem(WRONG_BOOK_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveWrongBook(items) {
+      localStorage.setItem(WRONG_BOOK_KEY, JSON.stringify(items));
+    }
+
+    function upsertWrongQuestion(q) {
+      const book = loadWrongBook();
+      const idx = book.findIndex(i => i.source === WRONG_SOURCE && i.id === q.id);
+      const now = Date.now();
+      if (idx >= 0) {
+        const old = book[idx];
+        book[idx] = {
+          ...old,
+          ...q,
+          source: WRONG_SOURCE,
+          wrongCount: (old.wrongCount || 1) + 1,
+          lastWrongAt: now
+        };
+      } else {
+        book.push({
+          ...q,
+          source: WRONG_SOURCE,
+          wrongCount: 1,
+          lastWrongAt: now
+        });
+      }
+      saveWrongBook(book);
+    }
+
+    function clearWrongQuestions() {
+      const kept = loadWrongBook().filter(i => i.source !== WRONG_SOURCE);
+      saveWrongBook(kept);
+    }
+
+    function countWrongQuestions() {
+      return loadWrongBook().filter(i => i.source === WRONG_SOURCE).length;
+    }
 
     function shuffle(arr) {
       const a = [...arr];
@@ -481,6 +532,28 @@
 
     function clearState() {
       localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function clearAutoNextTimer() {
+      if (app.autoNextTimer) {
+        clearTimeout(app.autoNextTimer);
+        app.autoNextTimer = null;
+      }
+    }
+
+    function scheduleAutoNext() {
+      clearAutoNextTimer();
+      app.autoNextTimer = setTimeout(() => {
+        app.autoNextTimer = null;
+        if (!app.exam || app.exam.submitted) return;
+        if (app.exam.currentIndex >= app.exam.items.length - 1) {
+          submitExam();
+          return;
+        }
+        app.exam.currentIndex += 1;
+        saveState();
+        renderExam();
+      }, 1000);
     }
 
     function idsByType(type) {
@@ -632,7 +705,7 @@
         case: app.bank.filter(q => q.type === 'case').length
       };
       el.meta.textContent = app.bank.length
-        ? `题库：共 ${app.bank.length} 题（单选${counts.single} / 多选${counts.multiple} / 判断${counts.judge} / 案例${counts.case}）`
+        ? `题库：共 ${app.bank.length} 题（单选${counts.single} / 多选${counts.multiple} / 判断${counts.judge} / 案例${counts.case}）｜错题：${countWrongQuestions()}`
         : '题库尚未加载。';
 
       if (app.warnings.length) {
@@ -768,6 +841,7 @@
         el.status.textContent = '题库未加载，请稍后再试。';
         return;
       }
+      clearAutoNextTimer();
 
       const built = buildExam(mode);
       app.exam = built.exam;
@@ -786,6 +860,7 @@
 
     function submitExam() {
       if (!app.exam || app.exam.submitted) return;
+      clearAutoNextTimer();
       const allLocked = app.exam.items.every(i => app.exam.locked && app.exam.locked[i.qid]);
       if (!allLocked) {
         el.status.textContent = '请先完成并确认全部题目后再交卷。';
@@ -793,6 +868,28 @@
       }
       app.exam.submitted = true;
       app.exam.scoreDetail = calcScoreDetail();
+
+      // In submit mode, record wrong questions when paper is submitted.
+      if (app.exam.mode === 'submit') {
+        app.exam.items.forEach(item => {
+          const q = app.byId.get(item.qid);
+          if (!q) return;
+          const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+          if (!sameAnswers(selected, q.answer)) {
+            upsertWrongQuestion({
+              id: q.id,
+              no: q.no,
+              type: q.type,
+              question: q.question,
+              options: q.options,
+              answer: q.answer,
+              analysis: q.analysis,
+              sourcePage: q.sourcePage
+            });
+          }
+        });
+      }
+
       saveState();
       el.status.textContent = app.exam.scoreDetail.pass ? '交卷完成：通过。' : '交卷完成：未通过。';
       renderHeader();
@@ -853,6 +950,7 @@
 
       el.nextBtn.addEventListener('click', () => {
         if (!app.exam) return;
+        clearAutoNextTimer();
         const current = app.exam.items[app.exam.currentIndex];
         if (!app.exam.locked || !app.exam.locked[current.qid]) {
           el.status.textContent = '请先确认当前题答案，再进入下一题。';
@@ -879,21 +977,39 @@
         }
         if (!app.exam.locked) app.exam.locked = {};
         app.exam.locked[q.id] = true;
+
+        if (app.exam.mode === 'instant' && !sameAnswers(selected, q.answer)) {
+          upsertWrongQuestion({
+            id: q.id,
+            no: q.no,
+            type: q.type,
+            question: q.question,
+            options: q.options,
+            answer: q.answer,
+            analysis: q.analysis,
+            sourcePage: q.sourcePage
+          });
+        }
+
         saveState();
-        el.status.textContent = '已选';
+        el.status.textContent = '已选，1秒后自动下一题';
         renderExam();
+        scheduleAutoNext();
       });
 
       el.backSetupBtn.addEventListener('click', () => {
+        clearAutoNextTimer();
         showSetup();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
       el.clearStorageBtn.addEventListener('click', () => {
+        clearAutoNextTimer();
         clearState();
+        clearWrongQuestions();
         app.exam = null;
         app.warnings = [];
-        el.status.textContent = '本地记录已清空。';
+        el.status.textContent = '本地记录与错题已清空。';
         showSetup();
       });
     }

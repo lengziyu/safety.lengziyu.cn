@@ -88,10 +88,26 @@
     a.link-btn:hover { transform: translateY(-1px); }
     a.link-btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
 
+    button.link-btn {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform .18s ease;
+    }
+    button.link-btn:hover { transform: translateY(-1px); }
+    button.link-btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #c3e9e2; }
     .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
     .btn-accent { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .btn-danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
 
     .btn-note {
       margin-top: 4px;
@@ -99,6 +115,51 @@
       font-size: 12px;
       line-height: 1.35;
       padding: 0 2px;
+    }
+
+    .wrong-box {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f9fcff;
+      padding: 10px;
+    }
+
+    .wrong-title {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .wrong-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .wrong-list {
+      margin-top: 8px;
+      display: grid;
+      gap: 6px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .wrong-item {
+      border: 1px solid #d6e4f5;
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px 9px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .wrong-item-head {
+      color: #1e3a8a;
+      font-weight: 700;
+      margin-bottom: 4px;
+      font-size: 12px;
     }
 
     @media (min-width: 760px) {
@@ -134,7 +195,63 @@
           <div class="btn-note">按配比组卷并本地保存进度，适合完整套卷练习。</div>
         </div>
       </div>
+
+      <section class="wrong-box">
+        <h2 class="wrong-title">首页错题（来自全题库练习）</h2>
+        <div id="wrongMeta" class="wrong-meta"></div>
+        <div id="wrongList" class="wrong-list"></div>
+        <div class="action-item" style="margin-top:8px;">
+          <button id="clearWrongBtn" class="link-btn btn-danger" type="button">清空首页错题</button>
+        </div>
+      </section>
     </section>
   </main>
+
+  <script>
+    const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
+    const WRONG_SOURCE = 'practice';
+
+    function loadWrongBook() {
+      try {
+        const raw = localStorage.getItem(WRONG_BOOK_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveWrongBook(items) {
+      localStorage.setItem(WRONG_BOOK_KEY, JSON.stringify(items));
+    }
+
+    function renderWrongList() {
+      const metaEl = document.getElementById('wrongMeta');
+      const listEl = document.getElementById('wrongList');
+      const items = loadWrongBook()
+        .filter(i => i.source === WRONG_SOURCE)
+        .sort((a, b) => (b.lastWrongAt || 0) - (a.lastWrongAt || 0));
+
+      metaEl.textContent = `共 ${items.length} 题错题。`;
+      if (!items.length) {
+        listEl.innerHTML = '<div class=\"wrong-item\">暂无错题，去全题库练习开始刷题吧。</div>';
+        return;
+      }
+
+      listEl.innerHTML = items.slice(0, 50).map((i, idx) => {
+        const title = `${idx + 1}. [${i.type || '-'}] 题号 ${i.no || '-'}（错 ${i.wrongCount || 1} 次）`;
+        const q = String(i.question || '').trim();
+        return `<div class=\"wrong-item\"><div class=\"wrong-item-head\">${title}</div><div>${q}</div></div>`;
+      }).join('');
+    }
+
+    document.getElementById('clearWrongBtn').addEventListener('click', () => {
+      const kept = loadWrongBook().filter(i => i.source !== WRONG_SOURCE);
+      saveWrongBook(kept);
+      renderWrongList();
+    });
+
+    renderWrongList();
+  </script>
 </body>
 </html>

@@ -396,6 +396,7 @@
           <button id="submitBtn" class="btn-primary" type="button">提交判分</button>
           <button id="toggleAnswerBtn" class="btn-secondary" type="button">显示标准答案</button>
           <button id="resetBtn" class="btn-plain" type="button">清空作答</button>
+          <button id="clearWrongBtn" class="btn-plain" type="button">清空错题</button>
           <a href="exam-simulator.html" class="action-link btn-primary">进入模拟考试</a>
           <a href="exam-dual-mode.html" class="action-link btn-secondary">进入双模式模拟考</a>
         </div>
@@ -421,6 +422,9 @@
   </button>
 
   <script>
+    const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
+    const WRONG_SOURCE = 'practice';
+
     const typeLabel = {
       single: '单选',
       multiple: '多选',
@@ -456,11 +460,59 @@
       submitBtn: document.getElementById('submitBtn'),
       toggleAnswerBtn: document.getElementById('toggleAnswerBtn'),
       resetBtn: document.getElementById('resetBtn'),
+      clearWrongBtn: document.getElementById('clearWrongBtn'),
       prevBtn: document.getElementById('prevBtn'),
       nextBtn: document.getElementById('nextBtn'),
       pageInfo: document.getElementById('pageInfo'),
       backTopBtn: document.getElementById('backTopBtn')
     };
+
+    function loadWrongBook() {
+      try {
+        const raw = localStorage.getItem(WRONG_BOOK_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveWrongBook(items) {
+      localStorage.setItem(WRONG_BOOK_KEY, JSON.stringify(items));
+    }
+
+    function upsertWrongQuestion(q) {
+      const book = loadWrongBook();
+      const idx = book.findIndex(i => i.source === WRONG_SOURCE && i.id === q.id);
+      const now = Date.now();
+      if (idx >= 0) {
+        const old = book[idx];
+        book[idx] = {
+          ...old,
+          ...q,
+          source: WRONG_SOURCE,
+          wrongCount: (old.wrongCount || 1) + 1,
+          lastWrongAt: now
+        };
+      } else {
+        book.push({
+          ...q,
+          source: WRONG_SOURCE,
+          wrongCount: 1,
+          lastWrongAt: now
+        });
+      }
+      saveWrongBook(book);
+    }
+
+    function countWrongQuestions() {
+      return loadWrongBook().filter(i => i.source === WRONG_SOURCE).length;
+    }
+
+    function clearWrongQuestions() {
+      const kept = loadWrongBook().filter(i => i.source !== WRONG_SOURCE);
+      saveWrongBook(kept);
+    }
 
     function normAnswers(arr) {
       if (!Array.isArray(arr)) return [];
@@ -522,7 +574,8 @@
       const typeStats = ['single', 'multiple', 'judge', 'case']
         .map(t => `${typeLabel[t]}:${state.questions.filter(q => q.type === t).length}`)
         .join(' / ');
-      el.metaLine.textContent = `题量：${total}（${typeStats}）｜当前筛选：${current}`;
+      const wrongCount = countWrongQuestions();
+      el.metaLine.textContent = `题量：${total}（${typeStats}）｜当前筛选：${current}｜错题：${wrongCount}`;
       el.pageInfo.textContent = `第 ${state.page} / ${totalPages} 页`;
       el.prevBtn.disabled = state.page <= 1;
       el.nextBtn.disabled = state.page >= totalPages;
@@ -625,19 +678,32 @@
       state.filtered.forEach(q => {
         const chosen = normAnswers(state.selections[q.id] || []);
         if (chosen.length > 0) answered += 1;
-        if (sameAnswers(chosen, q.answer)) right += 1;
+        if (sameAnswers(chosen, q.answer)) {
+          right += 1;
+        } else if (chosen.length > 0) {
+          upsertWrongQuestion({
+            id: q.id,
+            no: q.no,
+            type: q.type,
+            question: q.question,
+            options: q.options,
+            answer: q.answer,
+            analysis: q.analysis,
+            sourcePage: q.sourcePage
+          });
+        }
       });
       el.result.textContent = `当前筛选得分：${right} / ${state.filtered.length}（已作答 ${answered} 题）`;
-      renderList();
-      renderTopPanel();
+      renderAll();
     }
 
     function resetAnswers() {
       state.selections = {};
       state.submitted = false;
       el.result.textContent = '';
-      renderList();
-      renderTopPanel();
+      clearWrongQuestions();
+      el.status.textContent = '作答与错题已清空。';
+      renderAll();
     }
 
     async function loadFromSameDir() {
@@ -696,6 +762,12 @@
       });
 
       el.resetBtn.addEventListener('click', resetAnswers);
+
+      el.clearWrongBtn.addEventListener('click', () => {
+        clearWrongQuestions();
+        el.status.textContent = '错题已清空。';
+        renderAll();
+      });
 
       el.collapseBtn.addEventListener('click', () => {
         state.topCollapsed = !state.topCollapsed;
