@@ -243,7 +243,8 @@
     .q {
       margin: 0 0 10px;
       line-height: 1.58;
-      font-size: 16px;
+      font-size: 17px;
+      font-weight: 700;
       word-break: break-word;
     }
 
@@ -270,7 +271,9 @@
       transform: scale(1.08);
     }
 
-    .opt > span { line-height: 1.5; }
+    .opt > span {
+      line-height: 1.5;
+    }
 
     .opt.correct { background: #edfdf3; border-color: #b7e4c6; }
     .opt.wrong { background: #fff1f2; border-color: #fecdd3; }
@@ -850,9 +853,7 @@
         <div class="meta-row">
           <span class="tag">题号 ${q.no}</span>
           <span class="tag">考试题型：${TYPE_LABEL[item.slotType]}${sourceTag}</span>
-          <span class="tag">原题型：${TYPE_LABEL[q.type] || q.type}</span>
           <span class="tag">分值 ${pointsBySlotType(item.slotType)}</span>
-          ${q.sourcePage ? `<span class="tag">P${q.sourcePage}</span>` : ''}
         </div>
         <p class="q">${q.question || '（题干为空）'}</p>
         <div class="opts">${optionsHtml}</div>

@@ -72,6 +72,23 @@
       padding: 8px 10px;
     }
 
+    body.exam-top-collapsed .sticky.collapsed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      margin: 0;
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+      z-index: 130;
+    }
+
+    body.exam-top-collapsed .list {
+      margin-top: 76px;
+    }
+
     .sticky.collapsed h1 {
       font-size: 16px;
     }
@@ -252,7 +269,8 @@
     .q {
       margin: 0 0 9px;
       line-height: 1.58;
-      font-size: 15px;
+      font-size: 16px;
+      font-weight: 700;
       word-break: break-word;
     }
 
@@ -279,7 +297,9 @@
       transform: scale(1.08);
     }
 
-    .opt > span { line-height: 1.5; }
+    .opt > span {
+      line-height: 1.5;
+    }
 
     .opt.correct { background: #edfdf3; border-color: #b7e4c6; }
     .opt.wrong { background: #fff1f2; border-color: #fecdd3; }
@@ -353,6 +373,7 @@
       .grid { grid-template-columns: 1fr 1fr; }
       .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .wrap { margin-top: 20px; }
+      body.exam-top-collapsed .list { margin-top: 82px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -747,10 +768,8 @@
         return `
           <article class="card ${show ? 'show-answer' : ''}" id="card-${q.id}">
             <div class="meta-row">
-              <span class="tag">#${idx + 1}</span>
-              <span class="tag">考试题型：${labelMap[item.slotType]}${sourceTag}</span>
-              <span class="tag">原题型：${labelMap[q.type] || q.type}</span>
               <span class="tag">题号 ${q.no}</span>
+              <span class="tag">考试题型：${labelMap[item.slotType]}${sourceTag}</span>
               <span class="tag">分值 ${pointsBySlotType(item.slotType)}</span>
             </div>
             <p class="q">${q.question || '（题干为空）'}</p>
@@ -787,10 +806,12 @@
     function renderTopPanel() {
       if (app.topCollapsed) {
         el.topPanel.classList.add('collapsed');
+        document.body.classList.add('exam-top-collapsed');
         el.collapseBtn.textContent = '展开顶部面板';
         el.collapseBtn.setAttribute('aria-expanded', 'false');
       } else {
         el.topPanel.classList.remove('collapsed');
+        document.body.classList.remove('exam-top-collapsed');
         el.collapseBtn.textContent = '收起顶部面板';
         el.collapseBtn.setAttribute('aria-expanded', 'true');
       }

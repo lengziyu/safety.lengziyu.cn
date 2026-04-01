@@ -69,6 +69,23 @@
       padding: 8px 10px;
     }
 
+    body.qb-top-collapsed .top.collapsed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      margin: 0;
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+      z-index: 130;
+    }
+
+    body.qb-top-collapsed .list {
+      margin-top: 76px;
+    }
+
     .top.collapsed h1 {
       font-size: 16px;
     }
@@ -250,7 +267,8 @@
     .q {
       margin: 0 0 10px;
       line-height: 1.6;
-      font-size: 15px;
+      font-size: 16px;
+      font-weight: 700;
       word-break: break-word;
     }
 
@@ -352,6 +370,7 @@
       .toolbar { grid-template-columns: 1fr 1fr 1fr 1fr; }
       .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .wrap { margin-top: 22px; }
+      body.qb-top-collapsed .list { margin-top: 82px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -658,10 +677,12 @@
     function renderTopPanel() {
       if (state.topCollapsed) {
         el.topPanel.classList.add('collapsed');
+        document.body.classList.add('qb-top-collapsed');
         el.collapseBtn.textContent = '展开顶部面板';
         el.collapseBtn.setAttribute('aria-expanded', 'false');
       } else {
         el.topPanel.classList.remove('collapsed');
+        document.body.classList.remove('qb-top-collapsed');
         el.collapseBtn.textContent = '收起顶部面板';
         el.collapseBtn.setAttribute('aria-expanded', 'true');
       }
