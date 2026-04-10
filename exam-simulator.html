@@ -428,6 +428,7 @@
     const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
     const PASS_SCORE = 60;
     const STORAGE_KEY = 'exam_sim_state_v1';
+    const RESULT_KEY = 'c3_exam_last_result_v1';
 
     const labelMap = { single: '单选', multiple: '多选', judge: '判断', case: '案例' };
 
@@ -672,6 +673,7 @@
       let score = 0;
       let answered = 0;
       let maxScore = 0;
+      let correct = 0;
       const detail = { single: 0, multiple: 0, judge: 0, case: 0 };
 
       for (const item of app.exam.items) {
@@ -685,6 +687,7 @@
 
         if (isExactlyCorrect(selected, q.answer)) {
           score += pts;
+          correct += 1;
           detail[item.slotType] += pts;
         }
       }
@@ -693,9 +696,64 @@
         score,
         maxScore,
         answered,
+        correct,
+        wrong: app.exam.items.length - correct,
         pass: score >= PASS_SCORE,
         detail
       };
+    }
+
+    function buildTypeCounts(items) {
+      const counts = { single: 0, multiple: 0, judge: 0, case: 0 };
+      items.forEach(i => {
+        if (!i || !i.slotType) return;
+        if (counts[i.slotType] === undefined) counts[i.slotType] = 0;
+        counts[i.slotType] += 1;
+      });
+      return counts;
+    }
+
+    function buildWrongItemsForResult() {
+      if (!app.exam) return [];
+      const wrong = [];
+      app.exam.items.forEach(item => {
+        const q = app.byId.get(item.qid);
+        if (!q) return;
+        const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+        if (isExactlyCorrect(selected, q.answer)) return;
+        wrong.push({
+          id: q.id,
+          no: q.no,
+          type: item.slotType,
+          question: q.question,
+          yourAnswer: selected,
+          answer: q.answer
+        });
+      });
+      return wrong;
+    }
+
+    function saveResultAndRedirect(detail) {
+      if (!app.exam || !detail) return;
+      const result = {
+        source: 'standard',
+        mode: 'submit',
+        examId: app.exam.examId,
+        createdAt: app.exam.createdAt,
+        submittedAt: new Date().toISOString(),
+        score: detail.score,
+        maxScore: detail.maxScore,
+        passScore: PASS_SCORE,
+        pass: detail.pass,
+        totalQuestions: app.exam.items.length,
+        answered: detail.answered,
+        correct: detail.correct,
+        wrong: detail.wrong,
+        typeCounts: buildTypeCounts(app.exam.items),
+        wrongItems: buildWrongItemsForResult()
+      };
+      localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      window.location.href = 'exam-result.html?from=standard';
     }
 
     function updateMeta() {
@@ -868,9 +926,7 @@
       });
 
       saveState();
-      el.status.textContent = detail.pass ? '交卷完成：恭喜通过。' : '交卷完成：未通过，可重做或重考。';
-      renderAll();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      saveResultAndRedirect(detail);
     }
 
     function resetCurrentExam() {

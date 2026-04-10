@@ -412,6 +412,7 @@
     const REQUIRED = { single: 50, multiple: 10, judge: 15, case: 15 };
     const PASS_SCORE = 60;
     const STORAGE_KEY = 'exam_dual_mode_state_v2';
+    const RESULT_KEY = 'c3_exam_last_result_v1';
     const TYPE_LABEL = { single: '单选', multiple: '多选', judge: '判断', case: '案例' };
 
     const app = {
@@ -534,6 +535,11 @@
     function saveState() {
       if (!app.exam) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ exam: app.exam, warnings: app.warnings }));
+    }
+
+    function setExamHint(message, isError) {
+      el.score.textContent = message || '';
+      el.score.style.color = isError ? 'var(--bad)' : 'var(--warn)';
     }
 
     function loadState() {
@@ -786,6 +792,60 @@
       return { total, answered, correct, wrong, hidden: false };
     }
 
+    function buildTypeCounts(items) {
+      const counts = { single: 0, multiple: 0, judge: 0, case: 0 };
+      items.forEach(i => {
+        if (!i || !i.slotType) return;
+        if (counts[i.slotType] === undefined) counts[i.slotType] = 0;
+        counts[i.slotType] += 1;
+      });
+      return counts;
+    }
+
+    function buildWrongItemsForResult() {
+      if (!app.exam) return [];
+      const wrong = [];
+      app.exam.items.forEach(item => {
+        const q = app.byId.get(item.qid);
+        if (!q) return;
+        const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+        if (sameAnswers(selected, q.answer)) return;
+        wrong.push({
+          id: q.id,
+          no: q.no,
+          type: item.slotType,
+          question: q.question,
+          yourAnswer: selected,
+          answer: q.answer
+        });
+      });
+      return wrong;
+    }
+
+    function saveResultAndRedirect() {
+      if (!app.exam || !app.exam.scoreDetail) return;
+      const s = app.exam.scoreDetail;
+      const result = {
+        source: 'dual',
+        mode: app.exam.mode,
+        examId: app.exam.examId,
+        createdAt: app.exam.createdAt,
+        submittedAt: new Date().toISOString(),
+        score: s.score,
+        maxScore: s.maxScore,
+        passScore: PASS_SCORE,
+        pass: s.pass,
+        totalQuestions: app.exam.items.length,
+        answered: s.answered,
+        correct: s.correct,
+        wrong: s.wrong,
+        typeCounts: buildTypeCounts(app.exam.items),
+        wrongItems: buildWrongItemsForResult()
+      };
+      localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      window.location.href = 'exam-result.html?from=dual';
+    }
+
     function renderSetupMeta() {
       const counts = {
         single: app.bank.filter(q => q.type === 'single').length,
@@ -923,7 +983,7 @@
         confirmBtn.addEventListener('click', () => {
           const selected = uniqueSortedAnswers(app.exam.selections[q.id] || []);
           if (!selected.length) {
-            el.status.textContent = '请先选择至少一个答案。';
+            setExamHint('请先选择至少一个答案。', true);
             return;
           }
           clearAutoNextTimer();
@@ -977,7 +1037,7 @@
       clearAutoNextTimer();
       const allLocked = app.exam.items.every(i => app.exam.locked && app.exam.locked[i.qid]);
       if (!allLocked) {
-        el.status.textContent = '请先完成全部题目后再交卷。';
+        setExamHint('请先完成全部题目后再交卷。', true);
         return;
       }
       app.exam.submitted = true;
@@ -1005,10 +1065,7 @@
       }
 
       saveState();
-      el.status.textContent = app.exam.scoreDetail.pass ? '交卷完成：通过。' : '交卷完成：未通过。';
-      renderHeader();
-      renderQuestion();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      saveResultAndRedirect();
     }
 
     function restoreExam(saved) {
@@ -1072,11 +1129,11 @@
         const requireConfirm = isMultiInput(current, q) && !locked;
         if (!locked) {
           if (!selected.length) {
-            el.status.textContent = '请先作答当前题。';
+            setExamHint('请先作答当前题。', true);
             return;
           }
           if (requireConfirm) {
-            el.status.textContent = '多选题请点击“确认”后再进入下一题。';
+            setExamHint('多选题请点击“确认”后再进入下一题。', true);
             return;
           }
           // Manual next also honors instant feedback before leaving.
@@ -1151,7 +1208,10 @@
           const requireConfirm = isMultiInput(current, q) && !locked;
           if (!locked) {
             if (!selected.length) return;
-            if (requireConfirm) return;
+            if (requireConfirm) {
+              setExamHint('多选题请点击“确认”后再进入下一题。', true);
+              return;
+            }
             if (app.exam.mode === 'instant') {
               finalizeCurrentAnswerAndProceed({ instantFlow: true });
             } else {

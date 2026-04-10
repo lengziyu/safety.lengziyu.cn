@@ -6,18 +6,18 @@
   <title>错题练习</title>
   <style>
     :root {
-      --bg-a: #f5f7f3;
-      --bg-b: #e9f3ff;
+      --bg1: #f4f7fb;
+      --bg2: #eef8f3;
       --card: #ffffff;
-      --line: #d9e3ee;
+      --line: #dce5ef;
       --text: #1f2937;
-      --muted: #5f6b7b;
+      --muted: #64748b;
       --primary: #0f766e;
-      --primary-soft: #ddf3ef;
-      --accent: #b45309;
+      --primary-soft: #dbf3ef;
+      --warn: #b45309;
       --ok: #166534;
       --bad: #b91c1c;
-      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      --shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     }
 
     * { box-sizing: border-box; }
@@ -25,12 +25,12 @@
     body {
       font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
       color: var(--text);
-      background: radial-gradient(circle at 10% 0%, #fff7ed 0%, transparent 36%), linear-gradient(140deg, var(--bg-a), var(--bg-b));
       min-height: 100vh;
+      background: radial-gradient(circle at 15% 0%, #fff7ed 0%, transparent 35%), linear-gradient(145deg, var(--bg1), var(--bg2));
     }
 
     .wrap {
-      width: min(1024px, calc(100% - 22px));
+      width: min(980px, calc(100% - 20px));
       margin: 14px auto 24px;
     }
 
@@ -45,8 +45,8 @@
     .top {
       position: sticky;
       top: 8px;
-      z-index: 10;
-      backdrop-filter: blur(4px);
+      z-index: 30;
+      backdrop-filter: blur(6px);
     }
 
     .head {
@@ -54,39 +54,16 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      flex-wrap: wrap;
     }
 
     h1 {
       margin: 0;
-      font-size: 20px;
+      font-size: 22px;
       letter-spacing: 0.2px;
     }
 
-    .tips {
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .meta, .status {
-      margin-top: 8px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .meta { color: var(--muted); }
-    .status { color: var(--accent); font-weight: 700; min-height: 18px; }
-
-    .actions {
-      margin-top: 10px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .action-link, button {
+    .action-link,
+    button {
       border: 1px solid transparent;
       border-radius: 10px;
       padding: 10px 12px;
@@ -96,21 +73,22 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: transform .18s ease;
+      transition: transform .16s ease;
     }
 
-    .action-link:hover, button:hover { transform: translateY(-1px); }
-    .action-link:focus-visible, button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+    .action-link:hover,
+    button:hover { transform: translateY(-1px); }
+    .action-link:focus-visible,
+    button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
 
     .btn-primary { background: var(--primary); color: #fff; }
-    .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #bfe9e1; }
+    .btn-secondary { background: var(--primary-soft); color: var(--primary); border-color: #c3e9e2; }
     .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
-    .btn-danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
 
-    .list {
-      margin-top: 14px;
+    .main {
+      margin-top: 12px;
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .card {
@@ -121,26 +99,25 @@
       box-shadow: var(--shadow);
     }
 
-    .card-meta {
+    .meta-row {
       display: flex;
-      align-items: center;
-      gap: 7px;
       flex-wrap: wrap;
+      gap: 7px;
       margin-bottom: 8px;
     }
 
     .tag {
+      padding: 2px 10px;
+      font-size: 12px;
       border-radius: 999px;
-      border: 1px solid #d7e6f7;
+      border: 1px solid #d6e4f5;
       background: #eef5ff;
       color: #1e3a8a;
-      font-size: 12px;
-      padding: 2px 10px;
     }
 
     .q {
       margin: 0 0 10px;
-      line-height: 1.6;
+      line-height: 1.58;
       font-size: 16px;
       font-weight: 700;
       word-break: break-word;
@@ -158,20 +135,19 @@
       column-gap: 8px;
       border: 1px solid var(--line);
       border-radius: 10px;
-      padding: 9px 10px;
       background: #fff;
+      padding: 9px 10px;
     }
 
     .opt input {
       justify-self: center;
       margin-top: 0;
-      transform: scale(1.08);
       accent-color: var(--primary);
+      transform: scale(1.08);
     }
 
-    .opt > span {
-      line-height: 1.5;
-    }
+    .opt > span { line-height: 1.5; }
+
     .opt.correct { background: #edfdf3; border-color: #b7e4c6; }
     .opt.wrong { background: #fff1f2; border-color: #fecdd3; }
 
@@ -185,30 +161,74 @@
     .feedback.ok { color: var(--ok); }
     .feedback.bad { color: var(--bad); }
 
-    .answer, .analysis {
-      margin-top: 5px;
+    .answer,
+    .analysis {
+      margin-top: 6px;
       color: var(--muted);
       font-size: 13px;
-      display: none;
       line-height: 1.5;
+      display: none;
     }
 
     .show-answer .answer,
     .show-answer .analysis { display: block; }
 
+    .tip {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .confirm-wrap {
+      margin-top: 10px;
+    }
+
+    .confirm-wrap button {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .actions {
+      display: grid;
+      gap: 8px;
+    }
+
+    .actions button { width: 100%; }
+
+    .status {
+      color: var(--warn);
+      font-size: 13px;
+      font-weight: 700;
+      min-height: 18px;
+      padding: 2px 2px 0;
+    }
+
     .empty {
       border: 1px dashed #bdd2ea;
-      background: #f7fbff;
-      color: #37516d;
+      background: #f8fbff;
       border-radius: 12px;
       padding: 18px;
+      color: #34506b;
       text-align: center;
+      line-height: 1.55;
+    }
+
+    .empty-actions {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
     }
 
     @media (min-width: 760px) {
+      .wrap { margin-top: 20px; }
       h1 { font-size: 24px; }
       .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .wrap { margin-top: 22px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
     }
   </style>
 </head>
@@ -219,41 +239,39 @@
         <h1>错题练习</h1>
         <a href="index.html" class="action-link btn-plain">返回首页</a>
       </div>
-      <p class="tips">规则：提交后，答对的错题会从错题库移除；答错或未作答会保留在错题库。</p>
-      <div id="meta" class="meta"></div>
-      <div id="status" class="status"></div>
-      <div class="actions">
-        <button id="submitBtn" class="btn-primary" type="button">提交本页判分</button>
-        <button id="toggleAnswerBtn" class="btn-secondary" type="button">显示标准答案</button>
-        <button id="clearAllBtn" class="btn-danger" type="button">清空全部错题</button>
-      </div>
     </section>
 
-    <section id="list" class="list"></section>
+    <section class="main">
+      <article id="questionCard" class="card"></article>
+      <div class="actions">
+        <button id="prevBtn" class="btn-plain" type="button">上一题</button>
+        <button id="nextBtn" class="btn-plain" type="button">下一题</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
   </main>
 
   <script>
     const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
-    const SOURCE_LABEL = {
-      practice: '全题库练习',
-      exam_standard: '标准模拟',
-      exam_dual: '双模式模拟'
-    };
+    const RESULT_KEY = 'c3_exam_last_result_v1';
+    const TYPE_LABEL = { single: '单选', multiple: '多选', judge: '判断', case: '案例' };
+    const AUTO_REVIEW_STAY_MS = 1200;
 
-    const state = {
+    const app = {
+      createdAt: new Date().toISOString(),
       questions: [],
+      currentIndex: 0,
       selections: {},
-      showAnswer: false,
-      submitted: false
+      locked: {},
+      submitted: false,
+      timer: null
     };
 
     const el = {
-      meta: document.getElementById('meta'),
-      status: document.getElementById('status'),
-      list: document.getElementById('list'),
-      submitBtn: document.getElementById('submitBtn'),
-      toggleAnswerBtn: document.getElementById('toggleAnswerBtn'),
-      clearAllBtn: document.getElementById('clearAllBtn')
+      questionCard: document.getElementById('questionCard'),
+      prevBtn: document.getElementById('prevBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      status: document.getElementById('status')
     };
 
     function loadWrongBook() {
@@ -280,18 +298,15 @@
             ...i,
             id,
             wrongCount: Number(i.wrongCount || 1),
-            lastWrongAt: Number(i.lastWrongAt || 0),
-            sources: new Set([i.source || '-'])
+            lastWrongAt: Number(i.lastWrongAt || 0)
           });
           return;
         }
         const cur = map.get(id);
         cur.wrongCount += Number(i.wrongCount || 1);
         cur.lastWrongAt = Math.max(cur.lastWrongAt, Number(i.lastWrongAt || 0));
-        cur.sources.add(i.source || '-');
       });
       return Array.from(map.values())
-        .map(i => ({ ...i, sources: Array.from(i.sources) }))
         .sort((a, b) => (b.lastWrongAt || 0) - (a.lastWrongAt || 0));
     }
 
@@ -308,81 +323,33 @@
       return true;
     }
 
-    function renderMeta() {
-      el.meta.textContent = `当前错题 ${state.questions.length} 题。`;
-    }
-
-    function renderList() {
-      if (!state.questions.length) {
-        el.list.innerHTML = '<div class="empty">暂无错题，返回首页继续练习吧。</div>';
-        return;
+    function clearTimer() {
+      if (app.timer) {
+        clearTimeout(app.timer);
+        app.timer = null;
       }
-
-      el.list.innerHTML = state.questions.map((q, i) => {
-        const inputType = q.answer.length > 1 ? 'checkbox' : 'radio';
-        const selected = state.selections[q.id] || [];
-        const isCorrect = sameAnswers(selected, q.answer);
-        const show = state.showAnswer || state.submitted;
-
-        const optionsHtml = (q.options || []).map(opt => {
-          const checked = selected.includes(opt.key) ? 'checked' : '';
-          let cls = 'opt';
-          if (show) {
-            if (q.answer.includes(opt.key)) cls += ' correct';
-            if (selected.includes(opt.key) && !q.answer.includes(opt.key)) cls += ' wrong';
-          }
-          return `
-            <label class="${cls}">
-              <input type="${inputType}" name="q-${q.id}" value="${opt.key}" ${checked} />
-              <span><strong>${opt.key}.</strong> ${opt.text}</span>
-            </label>`;
-        }).join('');
-
-        const sources = (q.sources || []).map(s => SOURCE_LABEL[s] || s).join('、');
-
-        const feedback = !state.submitted
-          ? ''
-          : `<div class="feedback ${isCorrect ? 'ok' : 'bad'}">${isCorrect ? '本次答对，已从错题库移除' : '本次未答对，保留在错题库'}</div>`;
-
-        return `
-          <article class="card ${show ? 'show-answer' : ''}" id="card-${q.id}">
-            <div class="card-meta">
-              <span class="tag">#${i + 1}</span>
-              <span class="tag">来源 ${sources}</span>
-              <span class="tag">题号 ${q.no || '-'}</span>
-              <span class="tag">错 ${q.wrongCount || 1} 次</span>
-            </div>
-            <p class="q">${q.question || '（题干为空）'}</p>
-            <div class="opts">${optionsHtml}</div>
-            ${feedback}
-            <div class="answer">标准答案：${(q.answer || []).join('、') || '无'}</div>
-            <div class="analysis">解析：${q.analysis || '无'}</div>
-          </article>`;
-      }).join('');
-
-      bindOptionEvents();
     }
 
-    function bindOptionEvents() {
-      const inputs = el.list.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-      inputs.forEach(input => {
-        input.addEventListener('change', () => {
-          const name = input.name;
-          const qid = name.replace('q-', '');
-          const checked = Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
-            .map(i => i.value)
-            .sort();
-          state.selections[qid] = checked;
-        });
-      });
+    function isMulti(q) {
+      if (!q) return false;
+      return q.type === 'multiple' || (Array.isArray(q.answer) && q.answer.length > 1);
     }
 
-    function bumpWrongById(book, id) {
+    function pointsByType(type) {
+      return type === 'multiple' ? 2 : 1;
+    }
+
+    function setStatus(message, isError) {
+      el.status.textContent = message || '';
+      el.status.style.color = isError ? 'var(--bad)' : 'var(--warn)';
+    }
+
+    function bumpWrongById(book, q) {
       const now = Date.now();
       let idx = -1;
       let maxTs = -1;
       for (let i = 0; i < book.length; i += 1) {
-        if (String(book[i].id) !== id) continue;
+        if (String(book[i].id) !== String(q.id)) continue;
         const ts = Number(book[i].lastWrongAt || 0);
         if (ts >= maxTs) {
           idx = i;
@@ -392,66 +359,288 @@
       if (idx >= 0) {
         book[idx].wrongCount = Number(book[idx].wrongCount || 1) + 1;
         book[idx].lastWrongAt = now;
+        return;
       }
+      book.push({
+        id: q.id,
+        no: q.no,
+        type: q.type,
+        question: q.question,
+        options: q.options,
+        answer: q.answer,
+        analysis: q.analysis,
+        sourcePage: q.sourcePage,
+        source: 'wrong_practice',
+        wrongCount: 1,
+        lastWrongAt: now
+      });
     }
 
-    function submitWrongPractice() {
-      const current = state.questions;
-      if (!current.length) return;
-
+    function applyWrongBookAfterAnswer(q, selected) {
       let book = loadWrongBook();
-      let removed = 0;
-      let kept = 0;
+      if (sameAnswers(selected, q.answer || [])) {
+        book = book.filter(i => String(i.id) !== String(q.id));
+      } else {
+        bumpWrongById(book, q);
+      }
+      saveWrongBook(book);
+    }
 
-      current.forEach(q => {
-        const selected = normAnswers(state.selections[q.id] || []);
-        if (!selected.length) {
-          kept += 1;
-          return;
-        }
-        if (sameAnswers(selected, q.answer || [])) {
-          const before = book.length;
-          book = book.filter(i => String(i.id) !== String(q.id));
-          if (book.length < before) removed += 1;
+    function proceedNextAfterReview() {
+      if (!app.questions.length || app.submitted) return;
+      if (app.currentIndex >= app.questions.length - 1) {
+        setStatus('已到最后一题，请点击交卷。', false);
+        return;
+      }
+      app.currentIndex += 1;
+      render();
+    }
+
+    function finalizeCurrentAnswer() {
+      if (app.submitted || !app.questions.length) return false;
+      const q = app.questions[app.currentIndex];
+      if (!q) return false;
+      const selected = normAnswers(app.selections[q.id] || []);
+      if (!selected.length) return false;
+      if (app.locked[q.id]) return true;
+      app.locked[q.id] = true;
+      applyWrongBookAfterAnswer(q, selected);
+      return true;
+    }
+
+    function lockAndAutoAdvance() {
+      clearTimer();
+      const ok = finalizeCurrentAnswer();
+      if (!ok) {
+        setStatus('请先作答当前题。', true);
+        return;
+      }
+      render();
+      const isLast = app.currentIndex >= app.questions.length - 1;
+      if (isLast) {
+        setStatus('已到最后一题，请点击交卷。', false);
+        return;
+      }
+      app.timer = setTimeout(() => {
+        app.timer = null;
+        proceedNextAfterReview();
+      }, AUTO_REVIEW_STAY_MS);
+    }
+
+    function collectResultAndRedirect() {
+      let score = 0;
+      let maxScore = 0;
+      let answered = 0;
+      let correct = 0;
+      const typeCounts = { single: 0, multiple: 0, judge: 0, case: 0 };
+      const wrongItems = [];
+
+      app.questions.forEach(q => {
+        const pts = pointsByType(q.type);
+        maxScore += pts;
+        if (typeCounts[q.type] === undefined) typeCounts[q.type] = 0;
+        typeCounts[q.type] += 1;
+
+        const selected = normAnswers(app.selections[q.id] || []);
+        if (selected.length) answered += 1;
+
+        if (sameAnswers(selected, q.answer)) {
+          correct += 1;
+          score += pts;
         } else {
-          kept += 1;
-          bumpWrongById(book, String(q.id));
+          wrongItems.push({
+            id: q.id,
+            no: q.no,
+            type: q.type,
+            question: q.question,
+            yourAnswer: selected,
+            answer: q.answer
+          });
         }
       });
 
-      saveWrongBook(book);
-      state.questions = groupWrongQuestions(book);
-      state.selections = {};
-      state.submitted = true;
-      el.status.textContent = `本次练习：移除 ${removed} 题，保留 ${kept} 题。`;
-      renderMeta();
-      renderList();
+      const passScore = Math.max(1, Math.ceil(maxScore * 0.6));
+      const result = {
+        source: 'wrong_practice',
+        mode: 'instant',
+        examId: `wrong-${Date.now()}`,
+        createdAt: app.createdAt,
+        submittedAt: new Date().toISOString(),
+        score,
+        maxScore,
+        passScore,
+        pass: score >= passScore,
+        totalQuestions: app.questions.length,
+        answered,
+        correct,
+        wrong: app.questions.length - correct,
+        typeCounts,
+        wrongItems
+      };
+
+      localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      window.location.href = 'exam-result.html?from=wrong';
     }
 
-    function reloadQuestions() {
-      const book = loadWrongBook();
-      state.questions = groupWrongQuestions(book);
-      state.selections = {};
-      state.submitted = false;
-      el.status.textContent = '';
-      renderMeta();
-      renderList();
+    function renderEmpty() {
+      el.questionCard.className = 'card empty';
+      el.questionCard.innerHTML = `
+        <div>暂无错题，返回首页继续练习后再来。</div>
+        <div class="empty-actions">
+          <a class="action-link btn-primary" href="question-bank.html">去全题库练习</a>
+          <a class="action-link btn-plain" href="index.html">返回首页</a>
+        </div>
+      `;
+      el.prevBtn.disabled = true;
+      el.nextBtn.disabled = true;
+      el.nextBtn.textContent = '交卷';
+      setStatus('', false);
     }
 
-    el.submitBtn.addEventListener('click', submitWrongPractice);
-    el.toggleAnswerBtn.addEventListener('click', () => {
-      state.showAnswer = !state.showAnswer;
-      el.toggleAnswerBtn.textContent = state.showAnswer ? '隐藏标准答案' : '显示标准答案';
-      renderList();
-    });
+    function renderQuestion() {
+      if (!app.questions.length) {
+        renderEmpty();
+        return;
+      }
 
-    el.clearAllBtn.addEventListener('click', () => {
-      saveWrongBook([]);
-      reloadQuestions();
-      el.status.textContent = '全部错题已清空。';
-    });
+      const total = app.questions.length;
+      const idx = app.currentIndex;
+      const q = app.questions[idx];
+      const selected = normAnswers(app.selections[q.id] || []);
+      const locked = !!app.locked[q.id];
+      const show = locked;
+      const multi = isMulti(q);
+      const inputType = multi ? 'checkbox' : 'radio';
+      const isCorrect = show ? sameAnswers(selected, q.answer) : false;
 
-    reloadQuestions();
+      const optionsHtml = (q.options || []).map(opt => {
+        const checked = selected.includes(opt.key) ? 'checked' : '';
+        let cls = 'opt';
+        if (show) {
+          if ((q.answer || []).includes(opt.key)) cls += ' correct';
+          if (selected.includes(opt.key) && !(q.answer || []).includes(opt.key)) cls += ' wrong';
+        }
+        return `
+          <label class="${cls}">
+            <input type="${inputType}" name="q-${q.id}" value="${opt.key}" ${checked} ${(locked || app.submitted) ? 'disabled' : ''} />
+            <span><strong>${opt.key}.</strong> ${opt.text}</span>
+          </label>`;
+      }).join('');
+
+      const feedback = show
+        ? `<div class="feedback ${isCorrect ? 'ok' : 'bad'}">${isCorrect ? '回答正确' : '回答错误'}（本题 ${pointsByType(q.type)} 分）</div>`
+        : '<div class="feedback"></div>';
+
+      const confirmHtml = (multi && !locked && !app.submitted)
+        ? '<div class="confirm-wrap"><button id="confirmBtn" type="button">提交</button></div>'
+        : '';
+
+      el.questionCard.className = `card ${show ? 'show-answer' : ''}`;
+      el.questionCard.innerHTML = `
+        <div class="meta-row">
+          <span class="tag">第 ${idx + 1} / ${total} 题</span>
+          <span class="tag">题号 ${q.no || '-'}</span>
+          <span class="tag">题型 ${TYPE_LABEL[q.type] || q.type}</span>
+          <span class="tag">分值 ${pointsByType(q.type)}</span>
+        </div>
+        <p class="q">${q.question || '（题干为空）'}</p>
+        <div class="opts">${optionsHtml}</div>
+        ${feedback}
+        <div class="answer">标准答案：${(q.answer || []).join('、') || '无'}</div>
+        <div class="analysis">解析：${q.analysis || '无'}</div>
+        <div class="tip">${locked ? '已作答' : (multi ? '多选题请选完后点击提交。' : '作答后会立即显示对错并自动下一题。')}</div>
+        ${confirmHtml}
+      `;
+
+      el.prevBtn.disabled = idx <= 0;
+      el.nextBtn.textContent = idx >= total - 1 ? '交卷' : '下一题';
+      el.nextBtn.disabled = !locked;
+
+      bindQuestionEvents(q, multi, locked);
+    }
+
+    function bindQuestionEvents(q, multi, locked) {
+      if (app.submitted || locked) return;
+      const inputs = el.questionCard.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+      inputs.forEach(input => {
+        input.addEventListener('change', () => {
+          let checked = Array.from(el.questionCard.querySelectorAll(`input[name="q-${q.id}"]:checked`)).map(i => i.value);
+          if (!multi) checked = checked.slice(0, 1);
+          app.selections[q.id] = checked.sort();
+          setStatus('', false);
+          if (multi) {
+            renderQuestion();
+            return;
+          }
+          lockAndAutoAdvance();
+        });
+      });
+
+      const confirmBtn = document.getElementById('confirmBtn');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+          const selected = normAnswers(app.selections[q.id] || []);
+          if (!selected.length) {
+            setStatus('请先选择至少一个答案。', true);
+            return;
+          }
+          lockAndAutoAdvance();
+        });
+      }
+    }
+
+    function handlePrev() {
+      clearTimer();
+      if (!app.questions.length) return;
+      if (app.currentIndex <= 0) return;
+      app.currentIndex -= 1;
+      setStatus('', false);
+      render();
+    }
+
+    function handleNextOrSubmit() {
+      clearTimer();
+      if (!app.questions.length) return;
+      const q = app.questions[app.currentIndex];
+      const locked = !!app.locked[q.id];
+      if (!locked) {
+        if (isMulti(q)) {
+          setStatus('多选题请点击“提交”后再下一题。', true);
+        } else {
+          setStatus('请先作答当前题。', true);
+        }
+        return;
+      }
+
+      if (app.currentIndex >= app.questions.length - 1) {
+        app.submitted = true;
+        collectResultAndRedirect();
+        return;
+      }
+
+      app.currentIndex += 1;
+      setStatus('', false);
+      render();
+    }
+
+    function init() {
+      app.questions = groupWrongQuestions(loadWrongBook());
+      app.currentIndex = 0;
+      app.selections = {};
+      app.locked = {};
+      app.submitted = false;
+      setStatus('', false);
+      render();
+    }
+
+    function render() {
+      renderQuestion();
+    }
+
+    el.prevBtn.addEventListener('click', handlePrev);
+    el.nextBtn.addEventListener('click', handleNextOrSubmit);
+
+    init();
   </script>
 </body>
 </html>

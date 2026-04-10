@@ -1,0 +1,531 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>考试结果</title>
+  <style>
+    :root {
+      --bg-a: #f4f7fb;
+      --bg-b: #eef8f3;
+      --card: #ffffff;
+      --line: #dce5ef;
+      --text: #1f2937;
+      --muted: #64748b;
+      --accent: #0f766e;
+      --accent-soft: #dbf3ef;
+      --ok: #166534;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --shadow: 0 12px 24px rgba(15, 23, 42, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background: radial-gradient(circle at 15% 0%, #fff7ed 0%, transparent 36%), linear-gradient(145deg, var(--bg-a), var(--bg-b));
+    }
+
+    .wrap {
+      width: min(980px, calc(100% - 22px));
+      margin: 14px auto 24px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .top {
+      position: sticky;
+      top: 8px;
+      z-index: 20;
+      backdrop-filter: blur(6px);
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 21px;
+      letter-spacing: 0.2px;
+    }
+
+    .sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 11px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: linear-gradient(150deg, #ffffff, #f8fbff);
+    }
+
+    .hero-ill {
+      width: 96px;
+      height: 96px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .hero-desc {
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .score-line {
+      margin-top: 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .score-big {
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .score-small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress {
+      margin-top: 10px;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #edf2f7;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), #22c55e);
+      transition: width .35s ease;
+    }
+
+    .stats {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px;
+    }
+
+    .k {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .v {
+      margin-top: 4px;
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 10px 10px 2px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      outline: none;
+    }
+
+    .wrong-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .wrong-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 9px;
+      background: #fafcff;
+    }
+
+    .wrong-title {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    .wrong-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform .16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-soft { background: var(--accent-soft); color: var(--accent); border-color: var(--line); }
+    .btn-plain { background: #fff; border-color: var(--line); color: var(--text); }
+
+    .btn-note {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      padding: 0 2px;
+    }
+
+    .empty {
+      border: 1px dashed #bdd2ea;
+      background: #f8fbff;
+      border-radius: 12px;
+      padding: 16px;
+      color: #34506b;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    @media (min-width: 760px) {
+      .wrap { margin-top: 20px; }
+      h1 { font-size: 24px; }
+      .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card top">
+      <div class="head">
+        <h1>考试结果</h1>
+        <span id="modePill" class="pill">--</span>
+      </div>
+      <div id="baseInfo" class="sub"></div>
+    </section>
+
+    <section class="card">
+      <div class="hero" id="heroBox">
+        <div class="hero-ill" id="heroIll"></div>
+        <div>
+          <h2 id="heroTitle" class="hero-title">--</h2>
+          <div id="heroDesc" class="hero-desc"></div>
+          <div class="score-line">
+            <div class="score-big" id="scoreBig">0</div>
+            <div class="score-small" id="scoreSmall"></div>
+          </div>
+          <div class="progress" aria-label="得分进度">
+            <div id="progressBar" class="bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">正确题数</div><div id="statCorrect" class="v">0</div></div>
+        <div class="stat"><div class="k">错误题数</div><div id="statWrong" class="v">0</div></div>
+        <div class="stat"><div class="k">已作答</div><div id="statAnswered" class="v">0</div></div>
+        <div class="stat"><div class="k">未作答</div><div id="statUnanswered" class="v">0</div></div>
+      </div>
+    </section>
+
+    <section class="card" id="wrongSection">
+      <details open>
+        <summary id="wrongSummary">查看错题</summary>
+        <div id="wrongList" class="wrong-list"></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <div>
+          <a id="practiceWrongBtn" class="btn btn-primary" href="wrong-practice.html">练习错题</a>
+          <div id="wrongBtnNote" class="btn-note"></div>
+        </div>
+        <div>
+          <a id="backExamBtn" class="btn btn-soft" href="exam-dual-mode.html">返回考试页</a>
+          <div class="btn-note">返回模拟考试，可重新抽题继续练。</div>
+        </div>
+        <div>
+          <a class="btn btn-plain" href="question-bank.html">进入全题库练习</a>
+          <div class="btn-note">按题型和关键词继续专项训练。</div>
+        </div>
+        <div>
+          <a class="btn btn-plain" href="index.html">返回首页</a>
+          <div class="btn-note">回到首页选择其它练习入口。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="emptyState" class="card empty" style="display:none;"></section>
+  </main>
+
+  <script>
+    const RESULT_KEY = 'c3_exam_last_result_v1';
+    const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
+    const TYPE_LABEL = { single: '单选', multiple: '多选', judge: '判断', case: '案例' };
+
+    const el = {
+      modePill: document.getElementById('modePill'),
+      baseInfo: document.getElementById('baseInfo'),
+      heroBox: document.getElementById('heroBox'),
+      heroIll: document.getElementById('heroIll'),
+      heroTitle: document.getElementById('heroTitle'),
+      heroDesc: document.getElementById('heroDesc'),
+      scoreBig: document.getElementById('scoreBig'),
+      scoreSmall: document.getElementById('scoreSmall'),
+      progressBar: document.getElementById('progressBar'),
+      statCorrect: document.getElementById('statCorrect'),
+      statWrong: document.getElementById('statWrong'),
+      statAnswered: document.getElementById('statAnswered'),
+      statUnanswered: document.getElementById('statUnanswered'),
+      wrongSection: document.getElementById('wrongSection'),
+      wrongSummary: document.getElementById('wrongSummary'),
+      wrongList: document.getElementById('wrongList'),
+      practiceWrongBtn: document.getElementById('practiceWrongBtn'),
+      wrongBtnNote: document.getElementById('wrongBtnNote'),
+      backExamBtn: document.getElementById('backExamBtn'),
+      emptyState: document.getElementById('emptyState')
+    };
+
+    function loadResult() {
+      try {
+        const raw = localStorage.getItem(RESULT_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (!parsed || typeof parsed !== 'object') return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function loadWrongBook() {
+      try {
+        const raw = localStorage.getItem(WRONG_BOOK_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function uniqueWrongCount(items) {
+      const s = new Set();
+      items.forEach(i => {
+        const id = String(i.id || '').trim();
+        if (id) s.add(id);
+      });
+      return s.size;
+    }
+
+    function toDateText(v) {
+      if (!v) return '-';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return '-';
+      return d.toLocaleString('zh-CN', { hour12: false });
+    }
+
+    function clampPct(v) {
+      if (!Number.isFinite(v)) return 0;
+      return Math.max(0, Math.min(100, v));
+    }
+
+    function scoreTier(r) {
+      const rate = (r.maxScore > 0) ? (r.score / r.maxScore) : 0;
+      if (rate >= 0.9) {
+        return {
+          name: '优秀',
+          title: '发挥非常稳，继续保持',
+          desc: '正确率达到 90% 以上，建议开始查漏补缺，重点清理易错点。',
+          accent: '#166534',
+          soft: '#dcfce7',
+          ill: `<svg viewBox="0 0 120 120" width="92" height="92" fill="none" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="#ecfdf5"/><path d="M60 24l10 20 22 3-16 15 4 22-20-11-20 11 4-22-16-15 22-3 10-20z" fill="#22c55e"/><circle cx="60" cy="60" r="14" fill="#fef9c3"/></svg>`
+        };
+      }
+      if (r.score >= r.passScore) {
+        return {
+          name: '通过',
+          title: '已达及格线，再冲一冲更稳',
+          desc: '本次成绩已通过，建议优先练习错题，提升稳定性。',
+          accent: '#b45309',
+          soft: '#ffedd5',
+          ill: `<svg viewBox="0 0 120 120" width="92" height="92" fill="none" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="#fff7ed"/><path d="M60 20l30 12v28c0 21-14 38-30 44-16-6-30-23-30-44V32l30-12z" fill="#fb923c"/><path d="M48 61l9 9 16-16" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        };
+      }
+      return {
+        name: '未通过',
+        title: '这套没过线，错题再刷一轮',
+        desc: '先把错题练到全对，再回模拟考重做一套，通过率会提升很快。',
+        accent: '#b91c1c',
+        soft: '#fee2e2',
+        ill: `<svg viewBox="0 0 120 120" width="92" height="92" fill="none" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="#fef2f2"/><circle cx="60" cy="60" r="28" fill="#ef4444"/><path d="M60 42v22" stroke="#fff" stroke-width="8" stroke-linecap="round"/><circle cx="60" cy="74" r="4" fill="#fff"/></svg>`
+      };
+    }
+
+    function backExamConfig(source) {
+      if (source === 'standard') return { href: 'exam-simulator.html', label: '返回标准模拟考试' };
+      if (source === 'wrong_practice') return { href: 'wrong-practice.html', label: '返回错题练习' };
+      return { href: 'exam-dual-mode.html', label: '返回双模式模拟考试' };
+    }
+
+    function renderWrongList(items) {
+      el.wrongSummary.textContent = `查看错题（${items.length}）`;
+      if (!items.length) {
+        el.wrongList.innerHTML = '<div class="empty">本次没有错题，表现很好。</div>';
+        return;
+      }
+      const show = items.slice(0, 40);
+      el.wrongList.innerHTML = show.map((w, idx) => {
+        const your = Array.isArray(w.yourAnswer) && w.yourAnswer.length ? w.yourAnswer.join('、') : '未作答';
+        const ans = Array.isArray(w.answer) && w.answer.length ? w.answer.join('、') : '-';
+        const type = TYPE_LABEL[w.type] || w.type || '-';
+        return `<article class="wrong-item"><p class="wrong-title">${idx + 1}. [${type}] 题号 ${w.no || '-'} ${w.question || ''}</p><div class="wrong-meta">你的答案：${your} ｜ 正确答案：${ans}</div></article>`;
+      }).join('');
+      if (items.length > show.length) {
+        el.wrongList.insertAdjacentHTML('beforeend', `<div class="wrong-meta">仅展示前 ${show.length} 题错题。</div>`);
+      }
+    }
+
+    function render() {
+      const cards = Array.from(document.querySelectorAll('.card'));
+      const result = loadResult();
+      if (!result) {
+        cards.forEach(card => {
+          if (card !== el.emptyState) card.style.display = 'none';
+        });
+        el.emptyState.style.display = 'block';
+        el.emptyState.innerHTML = '未找到最近一次考试结果。请先进入模拟考试并交卷。';
+        el.wrongSection.style.display = 'none';
+        return;
+      }
+      cards.forEach(card => { card.style.display = ''; });
+      el.emptyState.style.display = 'none';
+
+      const source = String(result.source || '').trim() || 'dual';
+      const modeText = source === 'standard'
+        ? '标准模拟考试'
+        : (source === 'wrong_practice'
+          ? '错题练习'
+          : (result.mode === 'instant' ? '双模式·答完看答案' : '双模式·提交看答案'));
+
+      const cfg = backExamConfig(source);
+      el.backExamBtn.href = cfg.href;
+      el.backExamBtn.textContent = cfg.label;
+
+      const tier = scoreTier(result);
+      document.documentElement.style.setProperty('--accent', tier.accent);
+      document.documentElement.style.setProperty('--accent-soft', tier.soft);
+
+      el.modePill.textContent = modeText;
+      el.baseInfo.textContent = `试卷ID：${result.examId || '-'} ｜ 交卷时间：${toDateText(result.submittedAt)} ｜ 及格线：${result.passScore} 分`;
+      el.heroIll.innerHTML = tier.ill;
+      el.heroTitle.textContent = tier.title;
+      el.heroDesc.textContent = `${tier.desc}（结果：${tier.name}）`;
+      el.scoreBig.textContent = `${result.score}`;
+      el.scoreSmall.textContent = `/ ${result.maxScore} 分`;
+
+      const pct = clampPct((result.maxScore > 0 ? (result.score / result.maxScore) * 100 : 0));
+      el.progressBar.style.width = `${pct}%`;
+
+      el.statCorrect.textContent = String(result.correct || 0);
+      el.statWrong.textContent = String(result.wrong || 0);
+      el.statAnswered.textContent = String(result.answered || 0);
+      const unanswered = Math.max(0, Number(result.totalQuestions || 0) - Number(result.answered || 0));
+      el.statUnanswered.textContent = String(unanswered);
+
+      renderWrongList(Array.isArray(result.wrongItems) ? result.wrongItems : []);
+
+      const wrongCount = uniqueWrongCount(loadWrongBook());
+      el.practiceWrongBtn.textContent = `练习错题（${wrongCount}）`;
+      el.wrongBtnNote.textContent = '做对后会自动从错题库移除。';
+    }
+
+    render();
+  </script>
+</body>
+</html>
