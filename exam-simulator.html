@@ -703,6 +703,22 @@
       };
     }
 
+    function calcLiveStats() {
+      if (!app.exam || !app.exam.items) return { total: 0, answered: 0, correct: 0, wrong: 0 };
+      const total = app.exam.items.length;
+      let answered = 0;
+      let correct = 0;
+      app.exam.items.forEach(item => {
+        const q = app.byId.get(item.qid);
+        if (!q) return;
+        const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
+        if (!selected.length) return;
+        answered += 1;
+        if (isExactlyCorrect(selected, q.answer)) correct += 1;
+      });
+      return { total, answered, correct, wrong: answered - correct };
+    }
+
     function buildTypeCounts(items) {
       const counts = { single: 0, multiple: 0, judge: 0, case: 0 };
       items.forEach(i => {
@@ -753,6 +769,7 @@
         wrongItems: buildWrongItemsForResult()
       };
       localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      clearState(); // Submitted paper should not be restored next time.
       window.location.href = 'exam-result.html?from=standard';
     }
 
@@ -772,7 +789,8 @@
         el.score.textContent = `成绩：${s.score} / ${s.maxScore} ｜ 已作答 ${s.answered} 题 ｜ ${s.pass ? '通过' : '未通过'}（及格 ${PASS_SCORE}）`;
         el.score.style.color = s.pass ? 'var(--ok)' : 'var(--bad)';
       } else {
-        el.score.textContent = '未交卷。答题过程已自动保存在本地。';
+        const live = calcLiveStats();
+        el.score.textContent = `实时：对 ${live.correct} ｜ 错 ${live.wrong} ｜ 已作答 ${live.answered}/${live.total}`;
         el.score.style.color = 'var(--warn)';
       }
 
@@ -971,8 +989,33 @@
         el.status.textContent = `题库已加载，共 ${app.bank.length} 题。`;
 
         const saved = loadState();
-        if (!restoreExamIfValid(saved)) startNewExam();
-        else renderAll();
+        const hasSavedExam = !!(saved && saved.exam && Array.isArray(saved.exam.items));
+        if (!hasSavedExam) {
+          startNewExam();
+          return;
+        }
+
+        // Submitted papers should never be restored.
+        if (saved.exam.submitted) {
+          clearState();
+          startNewExam();
+          return;
+        }
+
+        const resume = window.confirm('检测到未完成考试，是否继续上次进度？\n确定：继续作答\n取消：重来');
+        if (!resume) {
+          clearState();
+          startNewExam();
+          return;
+        }
+
+        if (restoreExamIfValid(saved)) {
+          el.status.textContent = `已恢复本地考试：${app.exam.examId}`;
+          renderAll();
+        } else {
+          clearState();
+          startNewExam();
+        }
       } catch (err) {
         app.bank = [];
         app.byId = new Map();

@@ -205,14 +205,6 @@
       padding: 2px 2px 0;
     }
 
-    .live-stats {
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-      line-height: 1.5;
-      padding: 2px 2px 0;
-    }
-
     .empty {
       border: 1px dashed #bdd2ea;
       background: #f8fbff;
@@ -250,7 +242,6 @@
     </section>
 
     <section class="main">
-      <div id="liveStats" class="live-stats"></div>
       <article id="questionCard" class="card"></article>
       <div class="actions">
         <button id="prevBtn" class="btn-plain" type="button">上一题</button>
@@ -262,19 +253,21 @@
 
   <script>
     const WRONG_BOOK_KEY = 'c3_wrong_book_v1';
+    const RESULT_KEY = 'c3_exam_last_result_v1';
     const TYPE_LABEL = { single: '单选', multiple: '多选', judge: '判断', case: '案例' };
     const AUTO_REVIEW_STAY_MS = 1200;
 
     const app = {
+      createdAt: new Date().toISOString(),
       questions: [],
       currentIndex: 0,
       selections: {},
       locked: {},
+      submitted: false,
       timer: null
     };
 
     const el = {
-      liveStats: document.getElementById('liveStats'),
       questionCard: document.getElementById('questionCard'),
       prevBtn: document.getElementById('prevBtn'),
       nextBtn: document.getElementById('nextBtn'),
@@ -394,9 +387,9 @@
     }
 
     function proceedNextAfterReview() {
-      if (!app.questions.length) return;
+      if (!app.questions.length || app.submitted) return;
       if (app.currentIndex >= app.questions.length - 1) {
-        showFinalSummary();
+        setStatus('已到最后一题，请点击交卷。', false);
         return;
       }
       app.currentIndex += 1;
@@ -404,7 +397,7 @@
     }
 
     function finalizeCurrentAnswer() {
-      if (!app.questions.length) return false;
+      if (app.submitted || !app.questions.length) return false;
       const q = app.questions[app.currentIndex];
       if (!q) return false;
       const selected = normAnswers(app.selections[q.id] || []);
@@ -425,7 +418,7 @@
       render();
       const isLast = app.currentIndex >= app.questions.length - 1;
       if (isLast) {
-        showFinalSummary();
+        setStatus('已到最后一题，请点击交卷。', false);
         return;
       }
       app.timer = setTimeout(() => {
@@ -434,29 +427,59 @@
       }, AUTO_REVIEW_STAY_MS);
     }
 
-    function calcLiveStats() {
-      const total = app.questions.length;
+    function collectResultAndRedirect() {
+      let score = 0;
+      let maxScore = 0;
       let answered = 0;
       let correct = 0;
+      const typeCounts = { single: 0, multiple: 0, judge: 0, case: 0 };
+      const wrongItems = [];
+
       app.questions.forEach(q => {
-        if (!app.locked[q.id]) return;
-        answered += 1;
+        const pts = pointsByType(q.type);
+        maxScore += pts;
+        if (typeCounts[q.type] === undefined) typeCounts[q.type] = 0;
+        typeCounts[q.type] += 1;
+
         const selected = normAnswers(app.selections[q.id] || []);
-        if (sameAnswers(selected, q.answer)) correct += 1;
+        if (selected.length) answered += 1;
+
+        if (sameAnswers(selected, q.answer)) {
+          correct += 1;
+          score += pts;
+        } else {
+          wrongItems.push({
+            id: q.id,
+            no: q.no,
+            type: q.type,
+            question: q.question,
+            yourAnswer: selected,
+            answer: q.answer
+          });
+        }
       });
-      const wrong = Math.max(0, answered - correct);
-      const percent = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
-      return { total, answered, correct, wrong, percent };
-    }
 
-    function renderLiveStats() {
-      const s = calcLiveStats();
-      el.liveStats.textContent = `对 ${s.correct} ｜ 错 ${s.wrong} ｜ 正确率 ${s.percent}% ｜ 已做 ${s.answered}/${s.total}`;
-    }
+      const passScore = Math.max(1, Math.ceil(maxScore * 0.6));
+      const result = {
+        source: 'wrong_practice',
+        mode: 'instant',
+        examId: `wrong-${Date.now()}`,
+        createdAt: app.createdAt,
+        submittedAt: new Date().toISOString(),
+        score,
+        maxScore,
+        passScore,
+        pass: score >= passScore,
+        totalQuestions: app.questions.length,
+        answered,
+        correct,
+        wrong: app.questions.length - correct,
+        typeCounts,
+        wrongItems
+      };
 
-    function showFinalSummary() {
-      const s = calcLiveStats();
-      setStatus(`本次完成：对 ${s.correct} 题，错 ${s.wrong} 题，正确率 ${s.percent}%。`, false);
+      localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      window.location.href = 'exam-result.html?from=wrong';
     }
 
     function renderEmpty() {
@@ -470,9 +493,8 @@
       `;
       el.prevBtn.disabled = true;
       el.nextBtn.disabled = true;
-      el.nextBtn.textContent = '下一题';
+      el.nextBtn.textContent = '交卷';
       setStatus('', false);
-      renderLiveStats();
     }
 
     function renderQuestion() {
@@ -500,7 +522,7 @@
         }
         return `
           <label class="${cls}">
-            <input type="${inputType}" name="q-${q.id}" value="${opt.key}" ${checked} ${locked ? 'disabled' : ''} />
+            <input type="${inputType}" name="q-${q.id}" value="${opt.key}" ${checked} ${(locked || app.submitted) ? 'disabled' : ''} />
             <span><strong>${opt.key}.</strong> ${opt.text}</span>
           </label>`;
       }).join('');
@@ -509,7 +531,7 @@
         ? `<div class="feedback ${isCorrect ? 'ok' : 'bad'}">${isCorrect ? '回答正确' : '回答错误'}（本题 ${pointsByType(q.type)} 分）</div>`
         : '<div class="feedback"></div>';
 
-      const confirmHtml = (multi && !locked)
+      const confirmHtml = (multi && !locked && !app.submitted)
         ? '<div class="confirm-wrap"><button id="confirmBtn" type="button">提交</button></div>'
         : '';
 
@@ -531,14 +553,14 @@
       `;
 
       el.prevBtn.disabled = idx <= 0;
-      el.nextBtn.textContent = '下一题';
-      el.nextBtn.disabled = (!locked) || (idx >= total - 1);
+      el.nextBtn.textContent = idx >= total - 1 ? '交卷' : '下一题';
+      el.nextBtn.disabled = !locked;
 
       bindQuestionEvents(q, multi, locked);
     }
 
     function bindQuestionEvents(q, multi, locked) {
-      if (locked) return;
+      if (app.submitted || locked) return;
       const inputs = el.questionCard.querySelectorAll('input[type="radio"], input[type="checkbox"]');
       inputs.forEach(input => {
         input.addEventListener('change', () => {
@@ -591,7 +613,8 @@
       }
 
       if (app.currentIndex >= app.questions.length - 1) {
-        showFinalSummary();
+        app.submitted = true;
+        collectResultAndRedirect();
         return;
       }
 
@@ -605,12 +628,12 @@
       app.currentIndex = 0;
       app.selections = {};
       app.locked = {};
+      app.submitted = false;
       setStatus('', false);
       render();
     }
 
     function render() {
-      renderLiveStats();
       renderQuestion();
     }
 

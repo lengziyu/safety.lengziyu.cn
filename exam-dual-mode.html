@@ -767,7 +767,7 @@
     }
 
     function calcHeaderStats() {
-      if (!app.exam) return { total: 0, answered: 0, correct: 0, wrong: 0, hidden: false };
+      if (!app.exam) return { total: 0, answered: 0, correct: 0, wrong: 0 };
       const total = app.exam.items.length;
       let answered = 0;
       let correct = 0;
@@ -780,16 +780,11 @@
         answered += 1;
         const selected = uniqueSortedAnswers(app.exam.selections[item.qid] || []);
 
-        if (app.exam.mode === 'submit' && !app.exam.submitted) return;
         if (sameAnswers(selected, q.answer)) correct += 1;
       });
 
-      if (app.exam.mode === 'submit' && !app.exam.submitted) {
-        return { total, answered, correct: 0, wrong: 0, hidden: true };
-      }
-
       const wrong = app.exam.submitted ? total - correct : answered - correct;
-      return { total, answered, correct, wrong, hidden: false };
+      return { total, answered, correct, wrong };
     }
 
     function buildTypeCounts(items) {
@@ -843,6 +838,7 @@
         wrongItems: buildWrongItemsForResult()
       };
       localStorage.setItem(RESULT_KEY, JSON.stringify(result));
+      clearState(); // Submitted paper should not be restored next time.
       window.location.href = 'exam-result.html?from=dual';
     }
 
@@ -875,9 +871,7 @@
 
       el.headerMode.textContent = modeText;
       el.headerPage.textContent = `第 ${current} / ${total} 题`;
-      el.headerStats.textContent = stats.hidden
-        ? `对 - ｜ 错 - ｜ 已答 ${stats.answered}/${stats.total}`
-        : `对 ${stats.correct} ｜ 错 ${stats.wrong}`;
+      el.headerStats.textContent = `对 ${stats.correct} ｜ 错 ${stats.wrong} ｜ 已答 ${stats.answered}/${stats.total}`;
     }
 
     function renderQuestion() {
@@ -1092,10 +1086,36 @@
         el.status.textContent = `题库已加载，共 ${app.bank.length} 题。`;
 
         const saved = loadState();
+        const hasSavedExam = !!(saved && saved.exam && Array.isArray(saved.exam.items));
+        if (!hasSavedExam) {
+          showSetup();
+          return;
+        }
+
+        // Submitted papers should never be restored.
+        if (saved.exam.submitted) {
+          clearState();
+          showSetup();
+          return;
+        }
+
+        const resume = window.confirm('检测到未完成考试，是否继续上次进度？\n确定：继续作答\n取消：重来');
+        if (!resume) {
+          clearState();
+          app.exam = null;
+          app.warnings = [];
+          el.status.textContent = '已放弃上次进度，请重新开始考试。';
+          showSetup();
+          return;
+        }
+
         if (restoreExam(saved)) {
           el.status.textContent = `已恢复本地考试：${app.exam.examId}`;
           renderExam();
         } else {
+          clearState();
+          app.exam = null;
+          app.warnings = [];
           showSetup();
         }
       } catch (err) {
