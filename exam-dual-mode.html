@@ -321,6 +321,15 @@
       line-height: 1.4;
     }
 
+    .confirm-wrap {
+      margin-top: 10px;
+    }
+
+    .confirm-wrap .btn-confirm {
+      background: var(--primary);
+      color: #fff;
+    }
+
     .hidden { display: none !important; }
 
     @media (min-width: 760px) {
@@ -546,6 +555,11 @@
         clearTimeout(app.autoNextTimer);
         app.autoNextTimer = null;
       }
+    }
+
+    function isMultiInput(item, q) {
+      if (!item || !q) return false;
+      return item.slotType === 'multiple' || q.answer.length > 1;
     }
 
     function scheduleSubmitAutoNext() {
@@ -823,8 +837,9 @@
       const locked = !!(app.exam.locked && app.exam.locked[item.qid]);
       const showResult = app.exam.mode === 'instant' ? locked : app.exam.submitted;
       const isCorrect = showResult ? sameAnswers(selected, q.answer) : false;
-      const multiInput = item.slotType === 'multiple' || q.answer.length > 1;
+      const multiInput = isMultiInput(item, q);
       const inputType = multiInput ? 'checkbox' : 'radio';
+      const needConfirm = multiInput && !locked && !app.exam.submitted;
 
       const optionsHtml = q.options.map(opt => {
         const checked = selected.includes(opt.key) ? 'checked' : '';
@@ -860,12 +875,13 @@
         ${feedback}
         <div class="answer">标准答案：${q.answer.join('、') || '无'}</div>
         <div class="analysis">解析：${q.analysis || '无'}</div>
-        <div class="lock-tip">${locked ? '已作答' : (app.exam.mode === 'instant' ? '作答后先显示对错，再自动下一题' : '作答后自动下一题，交卷后看对错')}</div>
+        <div class="lock-tip">${locked ? '已作答' : (needConfirm ? '多选题请先勾选答案，再点确认' : (app.exam.mode === 'instant' ? '作答后先显示对错，再自动下一题' : '作答后自动下一题，交卷后看对错'))}</div>
+        ${needConfirm ? `<div class="confirm-wrap"><button id="confirmMultiBtn" class="btn-confirm" type="button">确认</button></div>` : ''}
       `;
 
       const hasSelected = selected.length > 0;
       el.prevBtn.disabled = app.exam.currentIndex <= 0;
-      el.nextBtn.disabled = !(locked || hasSelected);
+      el.nextBtn.disabled = needConfirm ? !locked : !(locked || hasSelected);
       el.nextBtn.textContent = app.exam.currentIndex >= app.exam.items.length - 1 ? '交卷' : '下一题';
 
       if (app.exam.submitted && app.exam.scoreDetail) {
@@ -877,10 +893,10 @@
         el.score.style.color = 'var(--warn)';
       }
 
-      bindQuestionEvents(q, inputType);
+      bindQuestionEvents(q, inputType, needConfirm);
     }
 
-    function bindQuestionEvents(q, inputType) {
+    function bindQuestionEvents(q, inputType, needConfirm) {
       if (!app.exam || app.exam.submitted || (app.exam.locked && app.exam.locked[q.id])) return;
       const inputs = el.questionCard.querySelectorAll('input[type="radio"], input[type="checkbox"]');
       inputs.forEach(input => {
@@ -890,6 +906,10 @@
           app.exam.selections[q.id] = checked.sort();
           saveState();
           renderQuestion();
+          if (needConfirm) {
+            clearAutoNextTimer();
+            return;
+          }
           if (app.exam.mode === 'instant') {
             scheduleInstantRevealThenNext();
           } else {
@@ -897,6 +917,23 @@
           }
         });
       });
+
+      const confirmBtn = document.getElementById('confirmMultiBtn');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+          const selected = uniqueSortedAnswers(app.exam.selections[q.id] || []);
+          if (!selected.length) {
+            el.status.textContent = '请先选择至少一个答案。';
+            return;
+          }
+          clearAutoNextTimer();
+          if (app.exam.mode === 'instant') {
+            finalizeCurrentAnswerAndProceed({ instantFlow: true });
+          } else {
+            finalizeCurrentAnswerAndProceed({ instantFlow: false });
+          }
+        });
+      }
     }
 
     function renderExam() {
@@ -1032,9 +1069,14 @@
         const locked = !!(app.exam.locked && app.exam.locked[current.qid]);
         const q = app.byId.get(current.qid);
         const selected = q ? uniqueSortedAnswers(app.exam.selections[q.id] || []) : [];
+        const requireConfirm = isMultiInput(current, q) && !locked;
         if (!locked) {
           if (!selected.length) {
             el.status.textContent = '请先作答当前题。';
+            return;
+          }
+          if (requireConfirm) {
+            el.status.textContent = '多选题请点击“确认”后再进入下一题。';
             return;
           }
           // Manual next also honors instant feedback before leaving.
@@ -1106,8 +1148,10 @@
           const locked = !!(app.exam.locked && app.exam.locked[current.qid]);
           const q = app.byId.get(current.qid);
           const selected = q ? uniqueSortedAnswers(app.exam.selections[q.id] || []) : [];
+          const requireConfirm = isMultiInput(current, q) && !locked;
           if (!locked) {
             if (!selected.length) return;
+            if (requireConfirm) return;
             if (app.exam.mode === 'instant') {
               finalizeCurrentAnswerAndProceed({ instantFlow: true });
             } else {
